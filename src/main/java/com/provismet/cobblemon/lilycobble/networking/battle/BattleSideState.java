@@ -1,4 +1,4 @@
-package com.provismet.cobblemon.lilycobble.networking;
+package com.provismet.cobblemon.lilycobble.networking.battle;
 
 import com.cobblemon.mod.common.api.battles.interpreter.BattleContext;
 import com.cobblemon.mod.common.battles.BattleSide;

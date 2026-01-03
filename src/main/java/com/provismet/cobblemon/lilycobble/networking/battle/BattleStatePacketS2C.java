@@ -1,33 +1,38 @@
-package com.provismet.cobblemon.lilycobble.networking;
+package com.provismet.cobblemon.lilycobble.networking.battle;
 
 import com.cobblemon.mod.common.api.battles.interpreter.BattleContext;
 import com.cobblemon.mod.common.api.battles.model.PokemonBattle;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.provismet.cobblemon.lilycobble.LilyCobbleMain;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
+import net.minecraft.network.packet.CustomPayload;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public record BattleState (List<String> fieldEffects, List<BattleSideState> sides) {
-    public static final Codec<BattleState> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-        Codec.STRING.listOf().optionalFieldOf("field_effects", List.of()).forGetter(BattleState::fieldEffects),
-        BattleSideState.CODEC.listOf().optionalFieldOf("sides", List.of()).forGetter(BattleState::sides)
-    ).apply(instance, BattleState::new));
+@SuppressWarnings("unused")
+public record BattleStatePacketS2C(List<String> fieldEffects, List<BattleSideState> sides) implements CustomPayload {
+    public static final Id<BattleStatePacketS2C> ID = new Id<>(LilyCobbleMain.identifier("battle_state"));
 
-    public static final PacketCodec<RegistryByteBuf, BattleState> PACKET_CODEC = PacketCodec.tuple(
+    public static final Codec<BattleStatePacketS2C> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+        Codec.STRING.listOf().optionalFieldOf("field_effects", List.of()).forGetter(BattleStatePacketS2C::fieldEffects),
+        BattleSideState.CODEC.listOf().optionalFieldOf("sides", List.of()).forGetter(BattleStatePacketS2C::sides)
+    ).apply(instance, BattleStatePacketS2C::new));
+
+    public static final PacketCodec<RegistryByteBuf, BattleStatePacketS2C> PACKET_CODEC = PacketCodec.tuple(
         PacketCodecs.STRING.collect(PacketCodecs.toList()),
-        BattleState::fieldEffects,
+        BattleStatePacketS2C::fieldEffects,
         BattleSideState.PACKET_CODEC.collect(PacketCodecs.toList()),
-        BattleState::sides,
-        BattleState::new
+        BattleStatePacketS2C::sides,
+        BattleStatePacketS2C::new
     );
 
-    public static BattleState of (PokemonBattle battle) {
+    public static BattleStatePacketS2C of (PokemonBattle battle) {
         Set<String> fieldEffects = new HashSet<>();
         extractContext(fieldEffects, battle, BattleContext.Type.WEATHER);
         extractContext(fieldEffects, battle, BattleContext.Type.ROOM);
@@ -35,7 +40,7 @@ public record BattleState (List<String> fieldEffects, List<BattleSideState> side
 
         List<BattleSideState> sides = List.of(BattleSideState.of(battle.getSide1()), BattleSideState.of(battle.getSide2()));
 
-        return new BattleState(fieldEffects.stream().toList(), sides);
+        return new BattleStatePacketS2C(fieldEffects.stream().toList(), sides);
     }
 
     private static void extractContext (Collection<String> mutableCollection, PokemonBattle battle, BattleContext.Type contextType) {
@@ -45,5 +50,10 @@ public record BattleState (List<String> fieldEffects, List<BattleSideState> side
         fullContext.stream()
             .map(BattleContext::getId)
             .forEach(mutableCollection::add);
+    }
+
+    @Override
+    public Id<? extends CustomPayload> getId () {
+        return ID;
     }
 }

@@ -1,4 +1,4 @@
-package com.provismet.cobblemon.lilycobble.networking;
+package com.provismet.cobblemon.lilycobble.util;
 
 import com.cobblemon.mod.common.Cobblemon;
 import com.cobblemon.mod.common.api.pokemon.stats.Stat;
