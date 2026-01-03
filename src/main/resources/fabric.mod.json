@@ -1,0 +1,38 @@
+{
+	"schemaVersion": 1,
+	"id": "lilycobble",
+	"version": "${version}",
+	"name": "cobblemon addon",
+	"description": "It's like LilyLib but for Cobblemon.",
+	"authors": [
+		"Provismet"
+	],
+	"contact": {
+		"homepage": "https://github.com/Provismet/LilyCobble",
+		"sources": "https://github.com/Provismet/LilyCobble",
+        "issues": "https://github.com/Provismet/LilyCobble/issues"
+    },
+	"license": "ARR",
+	"icon": "assets/lilycobble/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+            "com.provismet.cobblemon.lilycobble.LilyCobbleMain"
+		]
+	},
+	"mixins": [
+        "lilycobble.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.16.10",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*",
+        "cobblemon": "~1.7.0"
+	},
+    "custom": {
+        "modmenu": {
+            "badges": ["library"]
+        }
+    }
+}
