@@ -8,6 +8,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+@SuppressWarnings("unused")
 public record StatsPredicate (
     IntPredicate health,
     IntPredicate attack,

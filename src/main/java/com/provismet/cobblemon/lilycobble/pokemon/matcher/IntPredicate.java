@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 
+@SuppressWarnings("unused")
 public record IntPredicate (Comparison comparison, int compareTo, Optional<Integer> compareTo2) implements Predicate<Integer> {
     public static final Codec<IntPredicate> CODEC = RecordCodecBuilder.create(instance -> instance.group(
         Comparison.CODEC.fieldOf("comparison").forGetter(IntPredicate::comparison),
