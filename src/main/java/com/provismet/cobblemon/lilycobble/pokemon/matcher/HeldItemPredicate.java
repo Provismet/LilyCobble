@@ -2,22 +2,18 @@ package com.provismet.cobblemon.lilycobble.pokemon.matcher;
 
 import com.cobblemon.mod.common.pokemon.helditem.CobblemonHeldItemManager;
 import com.mojang.serialization.Codec;
-import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Predicate;
 
-public record HeldItemPredicate (List<String> whitelist, List<String> blacklist) implements Predicate<ItemStack> {
-    public static final Codec<HeldItemPredicate> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-        Codec.STRING.listOf().optionalFieldOf("whitelist", List.of()).forGetter(HeldItemPredicate::whitelist),
-        Codec.STRING.listOf().optionalFieldOf("blacklist", List.of()).forGetter(HeldItemPredicate::blacklist)
-    ).apply(instance, HeldItemPredicate::new));
-
-    public static final HeldItemPredicate TRUE = new HeldItemPredicate(List.of(), List.of());
-    public static final HeldItemPredicate FALSE = new HeldItemPredicate(List.of("dummy"), List.of("dummy"));
+/**
+ * A StringPredicate wrapper that tests the ShowdownId of an item.
+ */
+public record HeldItemPredicate (StringPredicate stringPredicate) implements Predicate<ItemStack> {
+    public static final Codec<HeldItemPredicate> CODEC = StringPredicate.CODEC.xmap(HeldItemPredicate::new, HeldItemPredicate::stringPredicate);
+    public static final HeldItemPredicate TRUE = new HeldItemPredicate(StringPredicate.TRUE);
+    public static final HeldItemPredicate FALSE = new HeldItemPredicate(StringPredicate.FALSE);
 
     public static Builder builder () {
         return new Builder();
@@ -26,41 +22,36 @@ public record HeldItemPredicate (List<String> whitelist, List<String> blacklist)
     @Override
     public boolean test (@Nullable ItemStack stack) {
         String showdownId = stack == null ? null : CobblemonHeldItemManager.INSTANCE.showdownId(stack);
-        if (!this.whitelist.isEmpty() && (showdownId == null || !this.whitelist.contains(showdownId))) return false;
-        return showdownId == null || !this.blacklist.contains(showdownId);
+        return this.stringPredicate.test(showdownId);
     }
 
     public static class Builder {
-        private final List<String> required = new ArrayList<>();
-        private final List<String> blacklist = new ArrayList<>();
+        private final StringPredicate.Builder underlying = StringPredicate.builder();
 
-        public Builder require (String showdownId) {
-            this.required.add(showdownId);
+        public Builder whitelist (String showdownId) {
+            this.underlying.whitelist(showdownId);
             return this;
         }
 
-        public Builder require (ItemStack stack) {
+        public Builder whitelist (ItemStack stack) {
             String showdownId = CobblemonHeldItemManager.INSTANCE.showdownId(stack);
-            if (showdownId != null) this.required.add(showdownId);
+            if (showdownId != null) this.underlying.whitelist(showdownId);
             return this;
         }
 
         public Builder blacklist (String showdownId) {
-            this.blacklist.add(showdownId);
+            this.underlying.blacklist(showdownId);
             return this;
         }
 
         public Builder blacklist (ItemStack stack) {
             String showdownId = CobblemonHeldItemManager.INSTANCE.showdownId(stack);
-            if (showdownId != null) this.blacklist.add(showdownId);
+            if (showdownId != null) this.underlying.blacklist(showdownId);
             return this;
         }
 
         public HeldItemPredicate build () {
-            return new HeldItemPredicate(
-                this.required,
-                this.blacklist
-            );
+            return new HeldItemPredicate(this.underlying.build());
         }
     }
 }
