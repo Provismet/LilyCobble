@@ -16,9 +16,6 @@
 	"icon": "assets/lilycobble/icon.png",
 	"environment": "*",
 	"entrypoints": {
-		"main": [
-            "com.provismet.cobblemon.lilycobble.LilyCobbleMain"
-		]
 	},
 	"mixins": [
         "lilycobble.mixins.json"

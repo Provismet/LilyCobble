@@ -1,16 +1,14 @@
 package com.provismet.cobblemon.lilycobble;
 
-import net.fabricmc.api.ModInitializer;
-
+import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LilyCobbleMain implements ModInitializer {
+public class LilyCobbleMain {
 	public static final String MODID = "lilycobble";
 	public static final Logger LOGGER = LoggerFactory.getLogger("LilyCobble");
 
-	@Override
-	public void onInitialize () {
-
-	}
+    public static Identifier identifier (String path) {
+        return Identifier.of(MODID, path);
+    }
 }
