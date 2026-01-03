@@ -2,7 +2,7 @@
 	"schemaVersion": 1,
 	"id": "lilycobble",
 	"version": "${version}",
-	"name": "cobblemon addon",
+	"name": "LilyCobble",
 	"description": "It's like LilyLib but for Cobblemon.",
 	"authors": [
 		"Provismet"
