@@ -7,7 +7,6 @@ import com.provismet.cobblemon.lilycobble.pokemon.matcher.IntPredicate;
 import com.provismet.cobblemon.lilycobble.pokemon.matcher.HeldItemPredicate;
 import com.provismet.cobblemon.lilycobble.pokemon.matcher.StatsPredicate;
 import com.provismet.cobblemon.lilycobble.pokemon.matcher.StringPredicate;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
@@ -21,6 +20,7 @@ import java.util.function.Predicate;
 public record PokemonPredicate (
     StringPredicate speciesShowdownIds,
     StringPredicate formShowdownIds,
+    StringPredicate speciesFormShowdownIds,
     StringPredicate aspects,
     StringPredicate moves,
     IntPredicate level,
@@ -35,6 +35,7 @@ public record PokemonPredicate (
     public static final Codec<PokemonPredicate> CODEC = RecordCodecBuilder.create(instance -> instance.group(
         StringPredicate.CODEC.optionalFieldOf("species_showdown_ids", StringPredicate.TRUE).forGetter(PokemonPredicate::speciesShowdownIds),
         StringPredicate.CODEC.optionalFieldOf("form_showdown_ids", StringPredicate.TRUE).forGetter(PokemonPredicate::formShowdownIds),
+        StringPredicate.CODEC.optionalFieldOf("speciesform_showdown_ids", StringPredicate.TRUE).forGetter(PokemonPredicate::speciesFormShowdownIds),
         StringPredicate.CODEC.optionalFieldOf("aspects", StringPredicate.TRUE).forGetter(PokemonPredicate::aspects),
         StringPredicate.CODEC.optionalFieldOf("moves", StringPredicate.TRUE).forGetter(PokemonPredicate::moves),
         IntPredicate.CODEC.optionalFieldOf("level", IntPredicate.TRUE).forGetter(PokemonPredicate::level),
@@ -47,14 +48,15 @@ public record PokemonPredicate (
         HeldItemPredicate.CODEC.optionalFieldOf("held_item", HeldItemPredicate.TRUE).forGetter(PokemonPredicate::heldItem)
     ).apply(instance, PokemonPredicate::new));
 
-    public static final PokemonPredicate TRUE = new PokemonPredicate(StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StatsPredicate.TRUE, StatsPredicate.TRUE, HeldItemPredicate.TRUE);
-    public static final PokemonPredicate FALSE = new PokemonPredicate(StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StatsPredicate.FALSE, StatsPredicate.FALSE, HeldItemPredicate.FALSE);
+    public static final PokemonPredicate TRUE = new PokemonPredicate(StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StatsPredicate.TRUE, StatsPredicate.TRUE, HeldItemPredicate.TRUE);
+    public static final PokemonPredicate FALSE = new PokemonPredicate(StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StatsPredicate.FALSE, StatsPredicate.FALSE, HeldItemPredicate.FALSE);
 
     public boolean test (@Nullable Pokemon pokemon) {
         if (pokemon == null) return this.equals(TRUE);
 
         return this.speciesShowdownIds.test(pokemon.getSpecies().showdownId())
             && this.formShowdownIds.test(pokemon.getForm().formOnlyShowdownId())
+            && this.speciesFormShowdownIds.test(pokemon.showdownId())
             && this.aspects.test(pokemon.getAspects())
             && this.moves.test(pokemon.getMoveSet().getMoves().stream().filter(Objects::nonNull).map(move -> move.getName().toLowerCase(Locale.ROOT)).toList())
             && this.level.test(pokemon.getLevel())
@@ -68,110 +70,91 @@ public record PokemonPredicate (
     }
 
     public static class Builder {
-        private StringPredicate.Builder speciesId = StringPredicate.builder();
-        private StringPredicate.Builder formId = StringPredicate.builder();
-        private StringPredicate.Builder aspects = StringPredicate.builder();
-        private StringPredicate.Builder moves = StringPredicate.builder();
+        private StringPredicate speciesId = StringPredicate.TRUE;
+        private StringPredicate formId = StringPredicate.TRUE;
+        private StringPredicate speciesFormId = StringPredicate.TRUE;
+        private StringPredicate aspects = StringPredicate.TRUE;
+        private StringPredicate moves = StringPredicate.TRUE;
         private IntPredicate level = IntPredicate.TRUE;
         private IntPredicate friendship = IntPredicate.TRUE;
         private IntPredicate fullness = IntPredicate.TRUE;
-        private StringPredicate.Builder speciesLabels = StringPredicate.builder();
-        private StringPredicate.Builder formLabels = StringPredicate.builder();
+        private StringPredicate speciesLabels = StringPredicate.TRUE;
+        private StringPredicate formLabels = StringPredicate.TRUE;
         private StatsPredicate EVs = StatsPredicate.TRUE;
         private StatsPredicate IVs = StatsPredicate.TRUE;
-        private HeldItemPredicate.Builder heldItem = HeldItemPredicate.builder();
+        private HeldItemPredicate heldItem = HeldItemPredicate.TRUE;
 
-        public Builder requireSpecies (String showdownId) {
-            this.speciesId.require(showdownId);
+        public Builder species (StringPredicate species) {
+            this.speciesId = species;
             return this;
         }
 
-        public Builder blacklistSpecies (String showdownId) {
-            this.speciesId.blacklist(showdownId);
+        public Builder species (StringPredicate.Builder builder) {
+            this.speciesId = builder.build();
             return this;
         }
 
-        public Builder species (StringPredicate.Builder speciesBuilder) {
-            this.speciesId = speciesBuilder;
-            return this;
-        }
-
-        public Builder requireForm (String showdownId) {
-            this.formId.require(showdownId);
-            return this;
-        }
-
-        public Builder blacklistForm (String showdownId) {
-            this.formId.blacklist(showdownId);
-            return this;
-        }
-
-        public Builder form (StringPredicate.Builder form) {
+        public Builder form (StringPredicate form) {
             this.formId = form;
             return this;
         }
 
-        public Builder requireAspect (String aspect) {
-            this.aspects.require(aspect);
+        public Builder form (StringPredicate.Builder builder) {
+            this.formId = builder.build();
             return this;
         }
 
-        public Builder blacklistAspect (String aspect) {
-            this.aspects.blacklist(aspect);
+        public Builder speciesForm (StringPredicate speciesForm) {
+            this.speciesFormId = speciesForm;
             return this;
         }
 
-        public Builder aspects (StringPredicate.Builder aspects) {
+        public Builder speciesForm (StringPredicate.Builder builder) {
+            this.speciesFormId = builder.build();
+            return this;
+        }
+
+        public Builder aspects (StringPredicate aspects) {
             this.aspects = aspects;
             return this;
         }
 
-        public Builder requireMove (String move) {
-            this.moves.require(move);
+        public Builder aspects (StringPredicate.Builder builder) {
+            this.aspects = builder.build();
             return this;
         }
 
-        public Builder blacklistMove (String move) {
-            this.moves.blacklist(move);
-            return this;
-        }
-
-        public Builder moves (StringPredicate.Builder moves) {
+        public Builder moves (StringPredicate moves) {
             this.moves = moves;
             return this;
         }
 
-        public Builder requireSpeciesLabel (String label) {
-            this.speciesLabels.require(label);
+        public Builder moves (StringPredicate.Builder builder) {
+            this.moves = builder.build();
             return this;
         }
 
-        public Builder blacklistSpeciesLabel (String label) {
-            this.speciesLabels.blacklist(label);
+        public Builder speciesLabels (StringPredicate speciesLabels) {
+            this.speciesLabels = speciesLabels;
             return this;
         }
 
-        public Builder speciesLabels (StringPredicate.Builder labels) {
-            this.speciesLabels = labels;
+        public Builder speciesLabels (StringPredicate.Builder builder) {
+            this.speciesLabels = builder.build();
             return this;
         }
 
-        public Builder requireFormLabel (String label) {
-            this.formLabels.require(label);
+        public Builder formLabels (StringPredicate formLabels) {
+            this.formLabels = formLabels;
             return this;
         }
 
-        public Builder blacklistFormLabel (String label) {
-            this.formLabels.blacklist(label);
+        public Builder formLabels (StringPredicate.Builder builder) {
+            this.formLabels = builder.build();
             return this;
         }
 
-        public Builder formLabels (StringPredicate.Builder labels) {
-            this.formLabels = labels;
-            return this;
-        }
-
-        public Builder level (@NotNull IntPredicate matcher) {
+        public Builder level (IntPredicate matcher) {
             this.level = matcher;
             return this;
         }
@@ -206,25 +189,31 @@ public record PokemonPredicate (
             return this;
         }
 
+        public Builder heldItem (HeldItemPredicate heldItem) {
+            this.heldItem = heldItem;
+            return this;
+        }
+
         public Builder heldItem (HeldItemPredicate.Builder builder) {
-            this.heldItem = builder;
+            this.heldItem = builder.build();
             return this;
         }
 
         public PokemonPredicate build () {
             return new PokemonPredicate(
-                this.speciesId.build(),
-                this.formId.build(),
-                this.aspects.build(),
-                this.moves.build(),
+                Objects.requireNonNull(this.speciesId),
+                Objects.requireNonNull(this.formId),
+                Objects.requireNonNull(this.speciesFormId),
+                Objects.requireNonNull(this.aspects),
+                Objects.requireNonNull(this.moves),
                 Objects.requireNonNull(this.level),
                 Objects.requireNonNull(this.friendship),
                 Objects.requireNonNull(this.fullness),
-                this.speciesLabels.build(),
-                this.formLabels.build(),
+                Objects.requireNonNull(this.speciesLabels),
+                Objects.requireNonNull(this.formLabels),
                 Objects.requireNonNull(this.EVs),
                 Objects.requireNonNull(this.IVs),
-                this.heldItem.build()
+                Objects.requireNonNull(this.heldItem)
             );
         }
     }
