@@ -4,6 +4,7 @@ import com.cobblemon.mod.common.api.battles.interpreter.BattleContext;
 import com.cobblemon.mod.common.battles.BattleSide;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
@@ -14,17 +15,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public record BattleSideState (List<String> sideEffects, List<BattlePokemonState> pokemon) {
+public record BattleSideState (List<String> sideEffects, List<BattleActorState> actors) {
     public static final Codec<BattleSideState> CODEC = RecordCodecBuilder.create(instance -> instance.group(
         Codec.STRING.listOf().optionalFieldOf("sided_effects", List.of()).forGetter(BattleSideState::sideEffects),
-        BattlePokemonState.CODEC.listOf().optionalFieldOf("pokemon", List.of()).forGetter(BattleSideState::pokemon)
+        BattleActorState.CODEC.listOf().optionalFieldOf("actors", List.of()).forGetter(BattleSideState::actors)
     ).apply(instance, BattleSideState::new));
 
     public static final PacketCodec<RegistryByteBuf, BattleSideState> PACKET_CODEC = PacketCodec.tuple(
         PacketCodecs.STRING.collect(PacketCodecs.toList()),
         BattleSideState::sideEffects,
-        BattlePokemonState.PACKET_CODEC.collect(PacketCodecs.toList()),
-        BattleSideState::pokemon,
+        BattleActorState.PACKET_CODEC.collect(PacketCodecs.toList()),
+        BattleSideState::actors,
         BattleSideState::new
     );
 
@@ -35,12 +36,21 @@ public record BattleSideState (List<String> sideEffects, List<BattlePokemonState
         extractContext(sidedEffects, side, BattleContext.Type.TAILWIND);
         extractContext(sidedEffects, side, BattleContext.Type.MISC);
 
-        List<BattlePokemonState> pokemon = Arrays.stream(side.getActors())
-            .flatMap(actor -> actor.getPokemonList().stream())
-            .map(BattlePokemonState::of)
+        List<BattleActorState> actors = Arrays.stream(side.getActors())
+            .map(BattleActorState::of)
             .toList();
 
-        return new BattleSideState(sidedEffects.stream().toList(), pokemon);
+        return new BattleSideState(sidedEffects.stream().toList(), actors);
+    }
+
+    public List<BattlePokemonState> getPokemon () {
+        return this.actors.stream()
+            .flatMap(state -> state.team().stream())
+            .toList();
+    }
+
+    public boolean isFor (PlayerEntity player) {
+        return this.actors.stream().anyMatch(actor -> actor.isFor(player));
     }
 
     private static void extractContext (Collection<String> mutableCollection, BattleSide side, BattleContext.Type contextType) {
