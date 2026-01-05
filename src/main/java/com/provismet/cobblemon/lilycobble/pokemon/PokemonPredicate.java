@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 /**
@@ -30,7 +31,9 @@ public record PokemonPredicate (
     StringPredicate formLabels,
     StatsPredicate EVs,
     StatsPredicate IVs,
-    HeldItemPredicate heldItem
+    HeldItemPredicate heldItem,
+    Optional<Boolean> hasEvolution,
+    Optional<Boolean> hasPreEvolution
 ) implements Predicate<Pokemon> {
     public static final Codec<PokemonPredicate> CODEC = RecordCodecBuilder.create(instance -> instance.group(
         StringPredicate.CODEC.optionalFieldOf("species_showdown_ids", StringPredicate.TRUE).forGetter(PokemonPredicate::speciesShowdownIds),
@@ -45,11 +48,13 @@ public record PokemonPredicate (
         StringPredicate.CODEC.optionalFieldOf("form_labels", StringPredicate.TRUE).forGetter(PokemonPredicate::formLabels),
         StatsPredicate.CODEC.optionalFieldOf("EVs", StatsPredicate.TRUE).forGetter(PokemonPredicate::EVs),
         StatsPredicate.CODEC.optionalFieldOf("IVs", StatsPredicate.TRUE).forGetter(PokemonPredicate::IVs),
-        HeldItemPredicate.CODEC.optionalFieldOf("held_item", HeldItemPredicate.TRUE).forGetter(PokemonPredicate::heldItem)
+        HeldItemPredicate.CODEC.optionalFieldOf("held_item", HeldItemPredicate.TRUE).forGetter(PokemonPredicate::heldItem),
+        Codec.BOOL.optionalFieldOf("has_evolution").forGetter(PokemonPredicate::hasEvolution),
+        Codec.BOOL.optionalFieldOf("has_pre-evolution").forGetter(PokemonPredicate::hasPreEvolution)
     ).apply(instance, PokemonPredicate::new));
 
-    public static final PokemonPredicate TRUE = new PokemonPredicate(StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StatsPredicate.TRUE, StatsPredicate.TRUE, HeldItemPredicate.TRUE);
-    public static final PokemonPredicate FALSE = new PokemonPredicate(StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StatsPredicate.FALSE, StatsPredicate.FALSE, HeldItemPredicate.FALSE);
+    public static final PokemonPredicate TRUE = new PokemonPredicate(StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StatsPredicate.TRUE, StatsPredicate.TRUE, HeldItemPredicate.TRUE, Optional.empty(), Optional.empty());
+    public static final PokemonPredicate FALSE = new PokemonPredicate(StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StatsPredicate.FALSE, StatsPredicate.FALSE, HeldItemPredicate.FALSE, Optional.empty(), Optional.empty());
 
     public boolean test (@Nullable Pokemon pokemon) {
         if (pokemon == null) return this.equals(TRUE);
@@ -66,7 +71,9 @@ public record PokemonPredicate (
             && this.formLabels.test(pokemon.getForm().getLabels())
             && this.EVs.test(pokemon.getEvs())
             && this.IVs.test(pokemon.getIvs())
-            && this.heldItem.test(pokemon.getHeldItem$common());
+            && this.heldItem.test(pokemon.getHeldItem$common())
+            && (this.hasEvolution.isEmpty() || this.hasEvolution().get() == !pokemon.getForm().getEvolutions().isEmpty())
+            && (this.hasPreEvolution.isEmpty() || this.hasPreEvolution.get() == (pokemon.getPreEvolution() != null));
     }
 
     public static class Builder {
@@ -83,6 +90,8 @@ public record PokemonPredicate (
         private StatsPredicate EVs = StatsPredicate.TRUE;
         private StatsPredicate IVs = StatsPredicate.TRUE;
         private HeldItemPredicate heldItem = HeldItemPredicate.TRUE;
+        private Boolean hasEvolution = null;
+        private Boolean hasPreEvolution = null;
 
         public Builder species (StringPredicate species) {
             this.speciesId = species;
@@ -199,6 +208,16 @@ public record PokemonPredicate (
             return this;
         }
 
+        public Builder hasEvolution (boolean hasEvolution) {
+            this.hasEvolution = hasEvolution;
+            return this;
+        }
+
+        public Builder hasPreEvolution (boolean hasPreEvolution) {
+            this.hasPreEvolution = hasPreEvolution;
+            return this;
+        }
+
         public PokemonPredicate build () {
             return new PokemonPredicate(
                 Objects.requireNonNull(this.speciesId),
@@ -213,7 +232,9 @@ public record PokemonPredicate (
                 Objects.requireNonNull(this.formLabels),
                 Objects.requireNonNull(this.EVs),
                 Objects.requireNonNull(this.IVs),
-                Objects.requireNonNull(this.heldItem)
+                Objects.requireNonNull(this.heldItem),
+                Optional.ofNullable(this.hasEvolution),
+                Optional.ofNullable(this.hasPreEvolution)
             );
         }
     }
