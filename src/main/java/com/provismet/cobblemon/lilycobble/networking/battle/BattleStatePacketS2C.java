@@ -13,6 +13,7 @@ import net.minecraft.network.packet.CustomPayload;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @SuppressWarnings("unused")
@@ -41,6 +42,16 @@ public record BattleStatePacketS2C(List<String> fieldEffects, List<BattleSideSta
         List<BattleSideState> sides = List.of(BattleSideState.of(battle.getSide1()), BattleSideState.of(battle.getSide2()));
 
         return new BattleStatePacketS2C(fieldEffects.stream().toList(), sides);
+    }
+
+    public Optional<BattleSideState> getSide1 () {
+        if (this.sides.isEmpty()) return Optional.empty();
+        return Optional.of(this.sides.getFirst());
+    }
+
+    public Optional<BattleSideState> getSide2 () {
+        if (this.sides.size() < 2) return Optional.empty();
+        return Optional.of(this.sides.get(1));
     }
 
     private static void extractContext (Collection<String> mutableCollection, PokemonBattle battle, BattleContext.Type contextType) {

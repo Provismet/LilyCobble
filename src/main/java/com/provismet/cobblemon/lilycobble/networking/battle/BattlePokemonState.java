@@ -47,4 +47,8 @@ public record BattlePokemonState (UUID uuid, double healthPercentage, Optional<S
             pokemon.getStatChanges()
         );
     }
+
+    public boolean isAlive () {
+        return this.healthPercentage > 0;
+    }
 }
