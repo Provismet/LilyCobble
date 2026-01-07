@@ -54,6 +54,14 @@ public record BattleStatePacketS2C(List<String> fieldEffects, List<BattleSideSta
         return Optional.of(this.sides.get(1));
     }
 
+    public void sendTo (ServerPlayerEntity player) {
+        ServerPlayNetworking.send(player, this);
+    }
+
+    public CustomPayloadS2CPacket toPacket () {
+        return new CustomPayloadS2CPacket(this);
+    }
+
     private static void extractContext (Collection<String> mutableCollection, PokemonBattle battle, BattleContext.Type contextType) {
         Collection<BattleContext> fullContext = battle.getContextManager().get(contextType);
         if (fullContext == null) return;
