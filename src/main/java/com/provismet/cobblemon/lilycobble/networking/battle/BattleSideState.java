@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 public record BattleSideState (List<String> sideEffects, List<BattleActorState> actors) {
@@ -60,5 +61,16 @@ public record BattleSideState (List<String> sideEffects, List<BattleActorState> 
         fullContext.stream()
             .map(BattleContext::getId)
             .forEach(mutableCollection::add);
+    }
+
+    @Override
+    public boolean equals (Object other) {
+        if (!(other instanceof BattleSideState(List<String> otherEffects, List<BattleActorState> otherActors))) return false;
+        return Objects.equals(this.sideEffects, otherEffects) && Objects.equals(this.actors, otherActors);
+    }
+
+    @Override
+    public int hashCode () {
+        return Objects.hash(this.sideEffects, this.actors);
     }
 }

@@ -14,6 +14,7 @@ import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.util.Uuids;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -50,5 +51,22 @@ public record BattlePokemonState (UUID uuid, double healthPercentage, Optional<S
 
     public boolean isAlive () {
         return this.healthPercentage > 0;
+    }
+
+    @Override
+    public boolean equals (Object other) {
+        if (!(other instanceof BattlePokemonState(UUID otherUUID, double otherHealth, Optional<String> otherStatus, Map<Stat, Integer> otherStatChanges))) {
+            return false;
+        }
+
+        return Double.compare(this.healthPercentage, otherHealth) == 0
+            && Objects.equals(this.uuid, otherUUID)
+            && Objects.equals(this.status, otherStatus)
+            && Objects.equals(this.statChanges, otherStatChanges);
+    }
+
+    @Override
+    public int hashCode () {
+        return Objects.hash(this.uuid, this.healthPercentage, this.status, this.statChanges);
     }
 }

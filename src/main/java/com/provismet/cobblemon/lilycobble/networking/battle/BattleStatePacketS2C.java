@@ -67,4 +67,15 @@ public record BattleStatePacketS2C(List<String> fieldEffects, List<BattleSideSta
     public Id<? extends CustomPayload> getId () {
         return ID;
     }
+
+    @Override
+    public boolean equals (Object other) {
+        if (!(other instanceof BattleStatePacketS2C(List<String> otherEffects, List<BattleSideState> otherSides))) return false;
+        return Objects.equals(this.fieldEffects, otherEffects) && Objects.equals(this.sides, otherSides);
+    }
+
+    @Override
+    public int hashCode () {
+        return Objects.hash(fieldEffects, sides);
+    }
 }
