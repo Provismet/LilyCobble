@@ -10,6 +10,7 @@ import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.util.Uuids;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -31,6 +32,7 @@ public record BattleActorState (UUID uuid, List<BattlePokemonState> team) {
     public static BattleActorState of (BattleActor actor) {
         List<BattlePokemonState> pokemon = actor.getPokemonList()
             .stream()
+            .sorted(Comparator.comparing(pk -> pk.getEffectedPokemon().getDisplayName(false).getString()))
             .map(BattlePokemonState::of)
             .toList();
 

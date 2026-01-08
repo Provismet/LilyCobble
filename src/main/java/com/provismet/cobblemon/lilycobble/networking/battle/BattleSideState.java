@@ -11,6 +11,7 @@ import net.minecraft.network.codec.PacketCodecs;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -38,6 +39,7 @@ public record BattleSideState (List<String> sideEffects, List<BattleActorState> 
         extractContext(sidedEffects, side, BattleContext.Type.MISC);
 
         List<BattleActorState> actors = Arrays.stream(side.getActors())
+            .sorted(Comparator.comparing(actor -> actor.getUuid().toString()))
             .map(BattleActorState::of)
             .toList();
 
