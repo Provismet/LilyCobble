@@ -1,29 +1,30 @@
 package com.provismet.cobblemon.lilycobble.networking.battle;
 
-import com.cobblemon.mod.common.api.pokemon.stats.Stat;
+import com.cobblemon.mod.common.api.battles.interpreter.BattleContext;
 import com.cobblemon.mod.common.api.pokemon.status.Status;
 import com.cobblemon.mod.common.battles.pokemon.BattlePokemon;
 import com.cobblemon.mod.common.pokemon.status.PersistentStatusContainer;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import com.provismet.cobblemon.lilycobble.util.CobblemonCodecs;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.util.Uuids;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-public record BattlePokemonState (UUID uuid, double healthPercentage, Optional<String> status, Map<Stat, Integer> statChanges) {
+public record BattlePokemonState (UUID uuid, double healthPercentage, Optional<String> status, Map<String, Integer> statChanges) {
     public static final Codec<BattlePokemonState> CODEC = RecordCodecBuilder.create(instance -> instance.group(
         Uuids.CODEC.fieldOf("uuid").forGetter(BattlePokemonState::uuid),
         Codec.DOUBLE.fieldOf("health_percentage").forGetter(BattlePokemonState::healthPercentage),
         Codec.STRING.optionalFieldOf("status").forGetter(BattlePokemonState::status),
-        Codec.unboundedMap(Stat.getALL_CODEC(), Codec.INT).fieldOf("stat_changes").forGetter(BattlePokemonState::statChanges)
+        Codec.unboundedMap(Codec.STRING, Codec.INT).fieldOf("stat_changes").forGetter(BattlePokemonState::statChanges)
     ).apply(instance, BattlePokemonState::new));
 
     public static final PacketCodec<RegistryByteBuf, BattlePokemonState> PACKET_CODEC = PacketCodec.tuple(
@@ -33,19 +34,35 @@ public record BattlePokemonState (UUID uuid, double healthPercentage, Optional<S
         BattlePokemonState::healthPercentage,
         PacketCodecs.optional(PacketCodecs.STRING),
         BattlePokemonState::status,
-        PacketCodecs.map(Object2ObjectOpenHashMap::new, CobblemonCodecs.STAT_PACKET_CODEC, PacketCodecs.INTEGER),
+        PacketCodecs.map(Object2ObjectOpenHashMap::new, PacketCodecs.STRING, PacketCodecs.INTEGER),
         BattlePokemonState::statChanges,
         BattlePokemonState::new
     );
 
     public static BattlePokemonState of (BattlePokemon pokemon) {
+        Map<String, Integer> statChanges = new HashMap<>();
+        Collection<BattleContext> boosts = pokemon.getContextManager().get(BattleContext.Type.BOOST);
+        Collection<BattleContext> unboosts = pokemon.getContextManager().get(BattleContext.Type.UNBOOST);
+
+        if (boosts != null) {
+            for (BattleContext boost : boosts) {
+                statChanges.compute(boost.getId(),(key, value) -> (value == null ? 0 : value) + 1);
+            }
+        }
+
+        if (unboosts != null) {
+            for (BattleContext unboost : unboosts) {
+                statChanges.compute(unboost.getId(),(key, value) -> (value == null ? 0 : value) - 1);
+            }
+        }
+
         return new BattlePokemonState(
             pokemon.getUuid(),
             (double)pokemon.getHealth() / pokemon.getMaxHealth(),
             Optional.ofNullable(pokemon.getEffectedPokemon().getStatus())
                 .map(PersistentStatusContainer::getStatus)
                 .map(Status::getShowdownName),
-            pokemon.getStatChanges()
+            statChanges
         );
     }
 
@@ -55,7 +72,7 @@ public record BattlePokemonState (UUID uuid, double healthPercentage, Optional<S
 
     @Override
     public boolean equals (Object other) {
-        if (!(other instanceof BattlePokemonState(UUID otherUUID, double otherHealth, Optional<String> otherStatus, Map<Stat, Integer> otherStatChanges))) {
+        if (!(other instanceof BattlePokemonState(UUID otherUUID, double otherHealth, Optional<String> otherStatus, Map<String, Integer> otherStatChanges))) {
             return false;
         }
 
