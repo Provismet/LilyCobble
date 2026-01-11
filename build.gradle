@@ -4,7 +4,7 @@ plugins {
 	id 'org.jetbrains.kotlin.jvm' version "${kotlin_version}"
 }
 
-version = project.mod_version
+version = project.mod_version + (project.snapshot == "true" ? "-SNAPSHOT" : "")
 group = project.maven_group
 
 base {
