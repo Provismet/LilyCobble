@@ -3,6 +3,7 @@ package com.provismet.cobblemon.lilycobble.networking.battle;
 import com.cobblemon.mod.common.api.battles.interpreter.BattleContext;
 import com.cobblemon.mod.common.battles.BattleSide;
 import com.cobblemon.mod.common.battles.pokemon.BattlePokemon;
+import com.cobblemon.mod.common.entity.npc.NPCEntity;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
@@ -62,6 +63,10 @@ public record BattleSideState (List<String> sideEffects, List<BattleActorState> 
 
     public boolean isFor (PlayerEntity player) {
         return this.actors.stream().anyMatch(actor -> actor.isFor(player));
+    }
+
+    public boolean isFor (NPCEntity npc) {
+        return this.actors.stream().anyMatch(actor -> actor.isFor(npc));
     }
 
     private static void extractContext (Collection<String> mutableCollection, BattleSide side, BattleContext.Type contextType) {
