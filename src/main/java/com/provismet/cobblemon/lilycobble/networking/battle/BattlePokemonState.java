@@ -1,45 +1,86 @@
 package com.provismet.cobblemon.lilycobble.networking.battle;
 
 import com.cobblemon.mod.common.api.battles.interpreter.BattleContext;
+import com.cobblemon.mod.common.api.moves.Move;
+import com.cobblemon.mod.common.api.pokemon.PokemonPropertyExtractor;
 import com.cobblemon.mod.common.api.pokemon.status.Status;
 import com.cobblemon.mod.common.battles.pokemon.BattlePokemon;
 import com.cobblemon.mod.common.pokemon.status.PersistentStatusContainer;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import com.provismet.cobblemon.lilycobble.pokemon.SafePokemonProperties;
+import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.util.Uuids;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-public record BattlePokemonState (UUID uuid, double healthPercentage, Optional<String> status, Map<String, Integer> statChanges) {
+@SuppressWarnings("unused")
+public record BattlePokemonState (
+    UUID uuid,
+    Optional<SafePokemonProperties> pokemonProperties,
+    double healthPercentage,
+    Optional<String> status,
+    Optional<String> item,
+    Map<String, Integer> statChanges,
+    Optional<List<String>> moves
+) {
     public static final Codec<BattlePokemonState> CODEC = RecordCodecBuilder.create(instance -> instance.group(
         Uuids.CODEC.fieldOf("uuid").forGetter(BattlePokemonState::uuid),
+        SafePokemonProperties.CODEC.optionalFieldOf("pokemon_properties").forGetter(BattlePokemonState::pokemonProperties),
         Codec.DOUBLE.fieldOf("health_percentage").forGetter(BattlePokemonState::healthPercentage),
         Codec.STRING.optionalFieldOf("status").forGetter(BattlePokemonState::status),
-        Codec.unboundedMap(Codec.STRING, Codec.INT).fieldOf("stat_changes").forGetter(BattlePokemonState::statChanges)
+        Codec.STRING.optionalFieldOf("item").forGetter(BattlePokemonState::item),
+        Codec.unboundedMap(Codec.STRING, Codec.INT).fieldOf("stat_changes").forGetter(BattlePokemonState::statChanges),
+        Codec.STRING.listOf().optionalFieldOf("move").forGetter(BattlePokemonState::moves)
     ).apply(instance, BattlePokemonState::new));
 
-    public static final PacketCodec<RegistryByteBuf, BattlePokemonState> PACKET_CODEC = PacketCodec.tuple(
-        Uuids.PACKET_CODEC,
-        BattlePokemonState::uuid,
-        PacketCodecs.DOUBLE,
-        BattlePokemonState::healthPercentage,
-        PacketCodecs.optional(PacketCodecs.STRING),
-        BattlePokemonState::status,
-        PacketCodecs.map(Object2ObjectOpenHashMap::new, PacketCodecs.STRING, PacketCodecs.INTEGER),
-        BattlePokemonState::statChanges,
-        BattlePokemonState::new
+    public static final PacketCodec<ByteBuf, BattlePokemonState> PACKET_CODEC = PacketCodec.tuple(
+        BattlePokemonStateP1.PACKET_CODEC,
+        BattlePokemonStateP1::fromState,
+        BattlePokemonStateP2.PACKET_CODEC,
+        BattlePokemonStateP2::fromState,
+        BattlePokemonState::fromPacket
     );
 
-    public static BattlePokemonState of (BattlePokemon pokemon) {
+    /**
+     * Creates a BattlePokemonState that hides all information not normally known to the player.
+     * <p>
+     * Equivalent to the standard Cobblemon experience.
+     */
+    public static BattlePokemonState hidden (BattlePokemon pokemon) {
+        return of(pokemon, false, false, false, false);
+    }
+
+    /**
+     * Creates a BattlePokemonState that includes the species and form of the Pokémon.
+     * <p>
+     * Equivalent to mainline Team Preview.
+     */
+    public static BattlePokemonState teamPreview (BattlePokemon pokemon) {
+        return of(pokemon, true, false, false, false);
+    }
+
+    /**
+     * Creates a BattlePokemonState that includes species, form, ability, moves, and item.
+     * <p>
+     * Equivalent to Open Team Sheet rules.
+     */
+    public static BattlePokemonState openTeamSheet (BattlePokemon pokemon) {
+        return of(pokemon, true, true, true, true);
+    }
+
+    public static BattlePokemonState of (BattlePokemon pokemon, boolean includeProperties, boolean includeAbility, boolean includeMoves, boolean includeItem) {
         Map<String, Integer> statChanges = new HashMap<>();
         Collection<BattleContext> boosts = pokemon.getContextManager().get(BattleContext.Type.BOOST);
         Collection<BattleContext> unboosts = pokemon.getContextManager().get(BattleContext.Type.UNBOOST);
@@ -56,14 +97,53 @@ public record BattlePokemonState (UUID uuid, double healthPercentage, Optional<S
             }
         }
 
+        Optional<SafePokemonProperties> properties;
+        List<PokemonPropertyExtractor> extractors = new ArrayList<>();
+
+        if (includeProperties) {
+            extractors.add(PokemonPropertyExtractor.SPECIES);
+            extractors.add(PokemonPropertyExtractor.FORM);
+            extractors.add(PokemonPropertyExtractor.ASPECTS);
+            extractors.add(PokemonPropertyExtractor.SHINY);
+        }
+        if (includeAbility) {
+            extractors.add(PokemonPropertyExtractor.ABILITY);
+        }
+
+        if (extractors.isEmpty()) properties = Optional.empty();
+        else properties = Optional.of(new SafePokemonProperties(pokemon.getEffectedPokemon().createPokemonProperties(extractors)));
+
+        Optional<List<String>> moves;
+        if (includeMoves) {
+            moves = Optional.of(
+                pokemon.getEffectedPokemon().getMoveSet().getMoves()
+                    .stream()
+                    .filter(Objects::nonNull)
+                    .map(Move::getName)
+                    .toList()
+            );
+        }
+        else moves = Optional.empty();
+
+        Optional<String> item;
+        if (includeItem) item = Optional.ofNullable(pokemon.getHeldItemManager().showdownId(pokemon));
+        else item = Optional.empty();
+
         return new BattlePokemonState(
             pokemon.getUuid(),
+            properties,
             (double)pokemon.getHealth() / pokemon.getMaxHealth(),
             Optional.ofNullable(pokemon.getEffectedPokemon().getStatus())
                 .map(PersistentStatusContainer::getStatus)
                 .map(Status::getShowdownName),
-            statChanges
+            item,
+            statChanges,
+            moves
         );
+    }
+
+    private static BattlePokemonState fromPacket (BattlePokemonStateP1 part1, BattlePokemonStateP2 part2) {
+        return new BattlePokemonState(part1.uuid, part1.properties, part1.healthPercentage, part2.status, part2.item, part2.statChanges, part2.moves);
     }
 
     public boolean isAlive () {
@@ -71,19 +151,74 @@ public record BattlePokemonState (UUID uuid, double healthPercentage, Optional<S
     }
 
     @Override
-    public boolean equals (Object other) {
-        if (!(other instanceof BattlePokemonState(UUID otherUUID, double otherHealth, Optional<String> otherStatus, Map<String, Integer> otherStatChanges))) {
-            return false;
-        }
-
-        return Double.compare(this.healthPercentage, otherHealth) == 0
+    public boolean equals(Object o) {
+        if (!(o instanceof BattlePokemonState(
+            UUID otherUUID,
+            Optional<SafePokemonProperties> otherProperties,
+            double otherPercentage,
+            Optional<String> otherStatus,
+            Optional<String> otherItem,
+            Map<String, Integer> otherStats,
+            Optional<List<String>> otherMoves
+        ))) return false;
+        return Double.compare(this.healthPercentage, otherPercentage) == 0
             && Objects.equals(this.uuid, otherUUID)
             && Objects.equals(this.status, otherStatus)
-            && Objects.equals(this.statChanges, otherStatChanges);
+            && Objects.equals(this.item, otherItem)
+            && Objects.equals(this.moves, otherMoves)
+            && Objects.equals(this.statChanges, otherStats)
+            && Objects.equals(this.pokemonProperties, otherProperties);
     }
 
     @Override
-    public int hashCode () {
-        return Objects.hash(this.uuid, this.healthPercentage, this.status, this.statChanges);
+    public int hashCode() {
+        return Objects.hash(this.uuid, this.pokemonProperties, this.healthPercentage, this.status, this.item, this.statChanges, this.moves);
+    }
+
+    private record BattlePokemonStateP1 (UUID uuid, Optional<SafePokemonProperties> properties, double healthPercentage) {
+        private static final PacketCodec<ByteBuf, BattlePokemonStateP1> PACKET_CODEC = PacketCodec.tuple(
+            Uuids.PACKET_CODEC,
+            BattlePokemonStateP1::uuid,
+            PacketCodecs.optional(SafePokemonProperties.PACKET_CODEC),
+            BattlePokemonStateP1::properties,
+            PacketCodecs.DOUBLE,
+            BattlePokemonStateP1::healthPercentage,
+            BattlePokemonStateP1::new
+        );
+
+        private static BattlePokemonStateP1 fromState (BattlePokemonState state) {
+            return new BattlePokemonStateP1(state.uuid, state.pokemonProperties, state.healthPercentage);
+        }
+    }
+
+    private record BattlePokemonStateP2 (Optional<String> status, Optional<String> item, Map<String, Integer> statChanges, Optional<List<String>> moves) {
+        private static final PacketCodec<ByteBuf, BattlePokemonStateP2> PACKET_CODEC = PacketCodec.tuple(
+            PacketCodecs.optional(PacketCodecs.STRING),
+            BattlePokemonStateP2::status,
+            PacketCodecs.optional(PacketCodecs.STRING),
+            BattlePokemonStateP2::item,
+            PacketCodecs.map(Object2ObjectOpenHashMap::new, PacketCodecs.STRING, PacketCodecs.INTEGER),
+            BattlePokemonStateP2::statChanges,
+            PacketCodecs.optional(PacketCodecs.STRING.collect(PacketCodecs.toList())),
+            BattlePokemonStateP2::moves,
+            BattlePokemonStateP2::new
+        );
+
+        private static BattlePokemonStateP2 fromState (BattlePokemonState state) {
+            return new BattlePokemonStateP2(state.status, state.item, state.statChanges, state.moves);
+        }
+    }
+
+    @Override
+    public @NotNull String toString () {
+        return "BattlePokemonState{" +
+            "uuid=" + this.uuid +
+            ", pokemonProperties=" + this.pokemonProperties +
+            ", healthPercentage=" + this.healthPercentage +
+            ", status=" + this.status +
+            ", item=" + this.item +
+            ", statChanges=" + this.statChanges +
+            ", moves=" + this.moves +
+            '}';
     }
 }

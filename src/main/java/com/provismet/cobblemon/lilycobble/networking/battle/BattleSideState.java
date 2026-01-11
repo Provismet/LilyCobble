@@ -2,12 +2,14 @@ package com.provismet.cobblemon.lilycobble.networking.battle;
 
 import com.cobblemon.mod.common.api.battles.interpreter.BattleContext;
 import com.cobblemon.mod.common.battles.BattleSide;
+import com.cobblemon.mod.common.battles.pokemon.BattlePokemon;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -16,14 +18,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 
+@SuppressWarnings("unused")
 public record BattleSideState (List<String> sideEffects, List<BattleActorState> actors) {
     public static final Codec<BattleSideState> CODEC = RecordCodecBuilder.create(instance -> instance.group(
         Codec.STRING.listOf().optionalFieldOf("sided_effects", List.of()).forGetter(BattleSideState::sideEffects),
         BattleActorState.CODEC.listOf().optionalFieldOf("actors", List.of()).forGetter(BattleSideState::actors)
     ).apply(instance, BattleSideState::new));
 
-    public static final PacketCodec<RegistryByteBuf, BattleSideState> PACKET_CODEC = PacketCodec.tuple(
+    public static final PacketCodec<ByteBuf, BattleSideState> PACKET_CODEC = PacketCodec.tuple(
         PacketCodecs.STRING.collect(PacketCodecs.toList()),
         BattleSideState::sideEffects,
         BattleActorState.PACKET_CODEC.collect(PacketCodecs.toList()),
@@ -32,6 +36,10 @@ public record BattleSideState (List<String> sideEffects, List<BattleActorState> 
     );
 
     public static BattleSideState of (BattleSide side) {
+        return of(side, BattlePokemonState::hidden);
+    }
+
+    public static BattleSideState of (BattleSide side, Function<BattlePokemon, BattlePokemonState> stateCreator) {
         Set<String> sidedEffects = new HashSet<>();
         extractContext(sidedEffects, side, BattleContext.Type.HAZARD);
         extractContext(sidedEffects, side, BattleContext.Type.SCREEN);
@@ -40,7 +48,7 @@ public record BattleSideState (List<String> sideEffects, List<BattleActorState> 
 
         List<BattleActorState> actors = Arrays.stream(side.getActors())
             .sorted(Comparator.comparing(actor -> actor.getUuid().toString()))
-            .map(BattleActorState::of)
+            .map(actor -> BattleActorState.of(actor, stateCreator))
             .toList();
 
         return new BattleSideState(sidedEffects.stream().toList(), actors);
@@ -74,5 +82,13 @@ public record BattleSideState (List<String> sideEffects, List<BattleActorState> 
     @Override
     public int hashCode () {
         return Objects.hash(this.sideEffects, this.actors);
+    }
+
+    @Override
+    public @NotNull String toString () {
+        return "BattleSideState{" +
+            "sideEffects=" + this.sideEffects +
+            ", actors=" + this.actors +
+            '}';
     }
 }

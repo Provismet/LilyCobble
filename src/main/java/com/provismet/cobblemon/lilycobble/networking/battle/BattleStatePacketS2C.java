@@ -3,16 +3,18 @@ package com.provismet.cobblemon.lilycobble.networking.battle;
 import com.cobblemon.mod.common.api.battles.interpreter.BattleContext;
 import com.cobblemon.mod.common.api.battles.model.PokemonBattle;
 import com.cobblemon.mod.common.battles.BattleSide;
+import com.cobblemon.mod.common.battles.pokemon.BattlePokemon;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import com.provismet.cobblemon.lilycobble.LilyCobbleMain;
+import io.netty.buffer.ByteBuf;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
-import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.network.packet.s2c.common.CustomPayloadS2CPacket;
 import net.minecraft.server.network.ServerPlayerEntity;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -21,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 @SuppressWarnings("unused")
 public record BattleStatePacketS2C (List<String> fieldEffects, List<BattleSideState> sides) implements CustomPayload {
@@ -32,7 +35,7 @@ public record BattleStatePacketS2C (List<String> fieldEffects, List<BattleSideSt
         BattleSideState.CODEC.listOf().optionalFieldOf("sides", List.of()).forGetter(BattleStatePacketS2C::sides)
     ).apply(instance, BattleStatePacketS2C::new));
 
-    public static final PacketCodec<RegistryByteBuf, BattleStatePacketS2C> PACKET_CODEC = PacketCodec.tuple(
+    public static final PacketCodec<ByteBuf, BattleStatePacketS2C> PACKET_CODEC = PacketCodec.tuple(
         PacketCodecs.STRING.collect(PacketCodecs.toList()),
         BattleStatePacketS2C::fieldEffects,
         BattleSideState.PACKET_CODEC.collect(PacketCodecs.toList()),
@@ -48,23 +51,27 @@ public record BattleStatePacketS2C (List<String> fieldEffects, List<BattleSideSt
         this(fieldEffects.stream().toList(), Arrays.stream(sides).toList());
     }
 
-    public static BattleStatePacketS2C of (BattleSide... sides) {
-        return of(Arrays.stream(sides).toList());
+    public static BattleStatePacketS2C of (Function<BattlePokemon, BattlePokemonState> stateCreator, BattleSide... sides) {
+        return of(stateCreator, Arrays.stream(sides).toList());
     }
 
-    public static BattleStatePacketS2C of (List<BattleSide> sides) {
+    public static BattleStatePacketS2C of (Function<BattlePokemon, BattlePokemonState> stateCreator, List<BattleSide> sides) {
         if (sides.isEmpty()) return NULL_PACKET;
 
         Set<String> fieldEffects = getFieldEffects(sides.getFirst().getBattle());
-        List<BattleSideState> sideStates = sides.stream().map(BattleSideState::of).toList();
+        List<BattleSideState> sideStates = sides.stream().map(side -> BattleSideState.of(side, stateCreator)).toList();
         return new BattleStatePacketS2C(fieldEffects, sideStates);
     }
 
     public static BattleStatePacketS2C of (PokemonBattle battle) {
+        return of(battle, BattlePokemonState::hidden);
+    }
+
+    public static BattleStatePacketS2C of (PokemonBattle battle, Function<BattlePokemon, BattlePokemonState> stateCreator) {
         return new BattleStatePacketS2C(
             getFieldEffects(battle),
-            BattleSideState.of(battle.getSide1()),
-            BattleSideState.of(battle.getSide2())
+            BattleSideState.of(battle.getSide1(), stateCreator),
+            BattleSideState.of(battle.getSide2(), stateCreator)
         );
     }
 
@@ -117,5 +124,13 @@ public record BattleStatePacketS2C (List<String> fieldEffects, List<BattleSideSt
     @Override
     public int hashCode () {
         return Objects.hash(fieldEffects, sides);
+    }
+
+    @Override
+    public @NotNull String toString () {
+        return "BattleStatePacketS2C{" +
+            "fieldEffects=" + this.fieldEffects +
+            ", sides=" + this.sides +
+            '}';
     }
 }

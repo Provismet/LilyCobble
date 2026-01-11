@@ -2,6 +2,9 @@ package com.provismet.cobblemon.lilycobble.pokemon;
 
 import com.cobblemon.mod.common.api.pokemon.PokemonProperties;
 import com.mojang.serialization.Codec;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.network.codec.PacketCodec;
+import net.minecraft.network.codec.PacketCodecs;
 
 /**
  * It is not safe to use the PokemonProperties codec in datapacks because it gets validated too early and will drop all datapack-specific
@@ -11,6 +14,7 @@ import com.mojang.serialization.Codec;
  */
 public record SafePokemonProperties (String underlying) {
     public static final Codec<SafePokemonProperties> CODEC = Codec.STRING.xmap(SafePokemonProperties::new, SafePokemonProperties::underlying);
+    public static final PacketCodec<ByteBuf, SafePokemonProperties> PACKET_CODEC = PacketCodecs.STRING.xmap(SafePokemonProperties::new, SafePokemonProperties::underlying);
 
     public SafePokemonProperties (PokemonProperties properties) {
         this(properties.asString(" "));
