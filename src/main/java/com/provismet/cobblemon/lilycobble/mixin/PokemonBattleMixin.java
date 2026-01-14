@@ -2,6 +2,7 @@ package com.provismet.cobblemon.lilycobble.mixin;
 
 import com.cobblemon.mod.common.api.battles.model.PokemonBattle;
 import com.provismet.cobblemon.lilycobble.imixin.IMixinPokemonBattle;
+import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 
@@ -22,7 +23,7 @@ public class PokemonBattleMixin implements IMixinPokemonBattle {
         this.tags.remove(tag);
     }
 
-    @Override
+    @Override @NotNull
     public Set<String> lilycobble$getTags () {
         return this.tags;
     }
