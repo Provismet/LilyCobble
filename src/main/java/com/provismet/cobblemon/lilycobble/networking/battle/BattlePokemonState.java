@@ -8,7 +8,7 @@ import com.cobblemon.mod.common.battles.pokemon.BattlePokemon;
 import com.cobblemon.mod.common.pokemon.status.PersistentStatusContainer;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import com.provismet.cobblemon.lilycobble.pokemon.SafePokemonProperties;
+import com.provismet.cobblemon.lilycobble.pokemon.PokemonPropertiesSupplier;
 import io.netty.buffer.ByteBuf;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import net.minecraft.network.codec.PacketCodec;
@@ -28,7 +28,7 @@ import java.util.UUID;
 @SuppressWarnings("unused")
 public record BattlePokemonState (
     UUID uuid,
-    Optional<SafePokemonProperties> pokemonProperties,
+    Optional<PokemonPropertiesSupplier> pokemonProperties,
     double healthPercentage,
     Optional<String> status,
     Optional<String> item,
@@ -37,7 +37,7 @@ public record BattlePokemonState (
 ) {
     public static final Codec<BattlePokemonState> CODEC = RecordCodecBuilder.create(instance -> instance.group(
         Uuids.CODEC.fieldOf("uuid").forGetter(BattlePokemonState::uuid),
-        SafePokemonProperties.CODEC.optionalFieldOf("pokemon_properties").forGetter(BattlePokemonState::pokemonProperties),
+        PokemonPropertiesSupplier.CODEC.optionalFieldOf("pokemon_properties").forGetter(BattlePokemonState::pokemonProperties),
         Codec.DOUBLE.fieldOf("health_percentage").forGetter(BattlePokemonState::healthPercentage),
         Codec.STRING.optionalFieldOf("status").forGetter(BattlePokemonState::status),
         Codec.STRING.optionalFieldOf("item").forGetter(BattlePokemonState::item),
@@ -97,7 +97,7 @@ public record BattlePokemonState (
             }
         }
 
-        Optional<SafePokemonProperties> properties;
+        Optional<PokemonPropertiesSupplier> properties;
         List<PokemonPropertyExtractor> extractors = new ArrayList<>();
 
         if (includeProperties) {
@@ -111,7 +111,7 @@ public record BattlePokemonState (
         }
 
         if (extractors.isEmpty()) properties = Optional.empty();
-        else properties = Optional.of(new SafePokemonProperties(pokemon.getEffectedPokemon().createPokemonProperties(extractors)));
+        else properties = Optional.of(new PokemonPropertiesSupplier(pokemon.getEffectedPokemon().createPokemonProperties(extractors)));
 
         Optional<List<String>> moves;
         if (includeMoves) {
@@ -154,7 +154,7 @@ public record BattlePokemonState (
     public boolean equals(Object o) {
         if (!(o instanceof BattlePokemonState(
             UUID otherUUID,
-            Optional<SafePokemonProperties> otherProperties,
+            Optional<PokemonPropertiesSupplier> otherProperties,
             double otherPercentage,
             Optional<String> otherStatus,
             Optional<String> otherItem,
@@ -175,11 +175,11 @@ public record BattlePokemonState (
         return Objects.hash(this.uuid, this.pokemonProperties, this.healthPercentage, this.status, this.item, this.statChanges, this.moves);
     }
 
-    private record BattlePokemonStateP1 (UUID uuid, Optional<SafePokemonProperties> properties, double healthPercentage) {
+    private record BattlePokemonStateP1 (UUID uuid, Optional<PokemonPropertiesSupplier> properties, double healthPercentage) {
         private static final PacketCodec<ByteBuf, BattlePokemonStateP1> PACKET_CODEC = PacketCodec.tuple(
             Uuids.PACKET_CODEC,
             BattlePokemonStateP1::uuid,
-            PacketCodecs.optional(SafePokemonProperties.PACKET_CODEC),
+            PacketCodecs.optional(PokemonPropertiesSupplier.PACKET_CODEC),
             BattlePokemonStateP1::properties,
             PacketCodecs.DOUBLE,
             BattlePokemonStateP1::healthPercentage,

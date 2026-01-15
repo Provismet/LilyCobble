@@ -6,29 +6,32 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 
+import java.util.function.Supplier;
+
 /**
  * It is not safe to use the PokemonProperties codec in datapacks because it gets validated too early and will drop all datapack-specific
  * data (such as species, forms, etc).
  * <p>
  * This is a safe string-wrapper that can be converted into PokemonProperties on demand.
  */
-public record SafePokemonProperties (String underlying) {
-    public static final Codec<SafePokemonProperties> CODEC = Codec.STRING.xmap(SafePokemonProperties::new, SafePokemonProperties::underlying);
-    public static final PacketCodec<ByteBuf, SafePokemonProperties> PACKET_CODEC = PacketCodecs.STRING.xmap(SafePokemonProperties::new, SafePokemonProperties::underlying);
+public record PokemonPropertiesSupplier (String underlying) implements Supplier<PokemonProperties> {
+    public static final Codec<PokemonPropertiesSupplier> CODEC = Codec.STRING.xmap(PokemonPropertiesSupplier::new, PokemonPropertiesSupplier::underlying);
+    public static final PacketCodec<ByteBuf, PokemonPropertiesSupplier> PACKET_CODEC = PacketCodecs.STRING.xmap(PokemonPropertiesSupplier::new, PokemonPropertiesSupplier::underlying);
 
-    public SafePokemonProperties (PokemonProperties properties) {
+    public PokemonPropertiesSupplier (PokemonProperties properties) {
         this(properties.asString(" "));
     }
 
-    public PokemonProperties toPokemonProperties (String delimiter, String assigner) {
+    public PokemonProperties get (String delimiter, String assigner) {
         return PokemonProperties.Companion.parse(this.underlying, delimiter, assigner);
     }
 
-    public PokemonProperties toPokemonProperties (String delimiter) {
+    public PokemonProperties get (String delimiter) {
         return PokemonProperties.Companion.parse(this.underlying, delimiter);
     }
 
-    public PokemonProperties toPokemonProperties () {
+    @Override
+    public PokemonProperties get () {
         return PokemonProperties.Companion.parse(this.underlying);
     }
 }
