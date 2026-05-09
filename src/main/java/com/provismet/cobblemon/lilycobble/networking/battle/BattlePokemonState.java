@@ -33,6 +33,7 @@ public record BattlePokemonState (
     Optional<String> status,
     Optional<String> item,
     Map<String, Integer> statChanges,
+    List<String> volatileStatus,
     Optional<List<String>> moves
 ) {
     public static final Codec<BattlePokemonState> CODEC = RecordCodecBuilder.create(instance -> instance.group(
@@ -42,6 +43,7 @@ public record BattlePokemonState (
         Codec.STRING.optionalFieldOf("status").forGetter(BattlePokemonState::status),
         Codec.STRING.optionalFieldOf("item").forGetter(BattlePokemonState::item),
         Codec.unboundedMap(Codec.STRING, Codec.INT).fieldOf("stat_changes").forGetter(BattlePokemonState::statChanges),
+        Codec.STRING.listOf().optionalFieldOf("volatile", List.of()).forGetter(BattlePokemonState::volatileStatus),
         Codec.STRING.listOf().optionalFieldOf("move").forGetter(BattlePokemonState::moves)
     ).apply(instance, BattlePokemonState::new));
 
@@ -97,6 +99,14 @@ public record BattlePokemonState (
             }
         }
 
+        List<String> volatileStatuses = new ArrayList<>();
+        Collection<BattleContext> volatiles = pokemon.getContextManager().get(BattleContext.Type.VOLATILE);
+        if (volatiles != null) {
+            for (BattleContext vol : volatiles) {
+                volatileStatuses.add(vol.getId());
+            }
+        }
+
         Optional<PokemonPropertiesSupplier> properties;
         List<PokemonPropertyExtractor> extractors = new ArrayList<>();
 
@@ -138,12 +148,13 @@ public record BattlePokemonState (
                 .map(Status::getShowdownName),
             item,
             statChanges,
+            volatileStatuses,
             moves
         );
     }
 
     private static BattlePokemonState fromPacket (BattlePokemonStateP1 part1, BattlePokemonStateP2 part2) {
-        return new BattlePokemonState(part1.uuid, part1.properties, part1.healthPercentage, part2.status, part2.item, part2.statChanges, part2.moves);
+        return new BattlePokemonState(part1.uuid, part1.properties, part1.healthPercentage, part1.status, part2.item, part2.statChanges, part2.volatiles, part2.moves);
     }
 
     public boolean isAlive () {
@@ -159,6 +170,7 @@ public record BattlePokemonState (
             Optional<String> otherStatus,
             Optional<String> otherItem,
             Map<String, Integer> otherStats,
+            List<String> otherVolatiles,
             Optional<List<String>> otherMoves
         ))) return false;
         return Double.compare(this.healthPercentage, otherPercentage) == 0
@@ -167,6 +179,7 @@ public record BattlePokemonState (
             && Objects.equals(this.item, otherItem)
             && Objects.equals(this.moves, otherMoves)
             && Objects.equals(this.statChanges, otherStats)
+            && Objects.equals(this.volatileStatus, otherVolatiles)
             && Objects.equals(this.pokemonProperties, otherProperties);
     }
 
@@ -175,7 +188,7 @@ public record BattlePokemonState (
         return Objects.hash(this.uuid, this.pokemonProperties, this.healthPercentage, this.status, this.item, this.statChanges, this.moves);
     }
 
-    private record BattlePokemonStateP1 (UUID uuid, Optional<PokemonPropertiesSupplier> properties, double healthPercentage) {
+    private record BattlePokemonStateP1 (UUID uuid, Optional<PokemonPropertiesSupplier> properties, double healthPercentage, Optional<String> status) {
         private static final PacketCodec<ByteBuf, BattlePokemonStateP1> PACKET_CODEC = PacketCodec.tuple(
             Uuids.PACKET_CODEC,
             BattlePokemonStateP1::uuid,
@@ -183,29 +196,31 @@ public record BattlePokemonState (
             BattlePokemonStateP1::properties,
             PacketCodecs.DOUBLE,
             BattlePokemonStateP1::healthPercentage,
+            PacketCodecs.optional(PacketCodecs.STRING),
+            BattlePokemonStateP1::status,
             BattlePokemonStateP1::new
         );
 
         private static BattlePokemonStateP1 fromState (BattlePokemonState state) {
-            return new BattlePokemonStateP1(state.uuid, state.pokemonProperties, state.healthPercentage);
+            return new BattlePokemonStateP1(state.uuid, state.pokemonProperties, state.healthPercentage, state.status);
         }
     }
 
-    private record BattlePokemonStateP2 (Optional<String> status, Optional<String> item, Map<String, Integer> statChanges, Optional<List<String>> moves) {
+    private record BattlePokemonStateP2 (Optional<String> item, Map<String, Integer> statChanges, List<String> volatiles, Optional<List<String>> moves) {
         private static final PacketCodec<ByteBuf, BattlePokemonStateP2> PACKET_CODEC = PacketCodec.tuple(
-            PacketCodecs.optional(PacketCodecs.STRING),
-            BattlePokemonStateP2::status,
             PacketCodecs.optional(PacketCodecs.STRING),
             BattlePokemonStateP2::item,
             PacketCodecs.map(Object2ObjectOpenHashMap::new, PacketCodecs.STRING, PacketCodecs.INTEGER),
             BattlePokemonStateP2::statChanges,
+            PacketCodecs.STRING.collect(PacketCodecs.toList()),
+            BattlePokemonStateP2::volatiles,
             PacketCodecs.optional(PacketCodecs.STRING.collect(PacketCodecs.toList())),
             BattlePokemonStateP2::moves,
             BattlePokemonStateP2::new
         );
 
         private static BattlePokemonStateP2 fromState (BattlePokemonState state) {
-            return new BattlePokemonStateP2(state.status, state.item, state.statChanges, state.moves);
+            return new BattlePokemonStateP2(state.item, state.statChanges, state.volatileStatus, state.moves);
         }
     }
 
