@@ -11,6 +11,7 @@ import com.cobblemon.mod.common.api.pokemon.PokemonProperties;
 import com.cobblemon.mod.common.pokemon.Gender;
 import com.cobblemon.mod.common.pokemon.Nature;
 import com.cobblemon.mod.common.pokemon.Pokemon;
+import com.cobblemon.mod.common.pokemon.Species;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.item.ItemStack;
@@ -138,6 +139,11 @@ public record PokemonSupplier (
 
         public Builder species (String species) {
             this.species = species;
+            return this;
+        }
+
+        public Builder species (Species species) {
+            this.species = species.showdownId();
             return this;
         }
 
