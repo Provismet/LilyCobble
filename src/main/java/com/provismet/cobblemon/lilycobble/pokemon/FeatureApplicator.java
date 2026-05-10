@@ -16,8 +16,10 @@ import net.minecraft.util.dynamic.Codecs;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @param featureMap A mapping of feature name to value. All are applied to the Pokémon when triggered.
@@ -43,6 +45,24 @@ public record FeatureApplicator (Map<String, FeatureValue> featureMap) {
 
     public static FeatureApplicator single (String name, int value) {
         return new FeatureApplicator(Map.of(name, FeatureValue.of(value)));
+    }
+
+    public FeatureApplicator with (String key, FeatureValue value) {
+        Map<String, FeatureValue> copy = new HashMap<>(this.featureMap);
+        copy.put(Objects.requireNonNull(key), Objects.requireNonNull(value));
+        return new FeatureApplicator(copy);
+    }
+
+    public FeatureApplicator with (String key, String value) {
+        return this.with(key, FeatureValue.of(Objects.requireNonNull(value)));
+    }
+
+    public FeatureApplicator with (String key, boolean value) {
+        return this.with(key, FeatureValue.of(value));
+    }
+
+    public FeatureApplicator with (String key, int value) {
+        return this.with(key, FeatureValue.of(value));
     }
 
     public void apply (Pokemon pokemon) {
