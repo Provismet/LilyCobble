@@ -1,5 +1,9 @@
 package com.provismet.cobblemon.lilycobble.pokemon;
 
+import com.cobblemon.mod.common.api.Priority;
+import com.cobblemon.mod.common.api.abilities.Abilities;
+import com.cobblemon.mod.common.api.abilities.Ability;
+import com.cobblemon.mod.common.api.abilities.AbilityTemplate;
 import com.cobblemon.mod.common.api.moves.MoveTemplate;
 import com.cobblemon.mod.common.api.moves.Moves;
 import com.cobblemon.mod.common.api.pokemon.Natures;
@@ -27,6 +31,7 @@ public record PokemonSupplier (
     String species,
     FeatureApplicator features,
     int level,
+    Optional<String> ability,
     Optional<List<String>> moves,
     Optional<Gender> gender,
     Optional<Identifier> nature,
@@ -42,6 +47,7 @@ public record PokemonSupplier (
         Codec.STRING.fieldOf("species").forGetter(PokemonSupplier::species),
         FeatureApplicator.CODEC.optionalFieldOf("features", FeatureApplicator.DEFAULT).forGetter(PokemonSupplier::features),
         Codecs.POSITIVE_INT.optionalFieldOf("level", 1).forGetter(PokemonSupplier::level),
+        Codec.STRING.optionalFieldOf("ability").forGetter(PokemonSupplier::ability),
         Codecs.NON_EMPTY_STRING.listOf(1, 4).optionalFieldOf("moves").forGetter(PokemonSupplier::moves),
         Gender.getCODEC().optionalFieldOf("gender").forGetter(PokemonSupplier::gender),
         Identifier.CODEC.optionalFieldOf("nature").forGetter(PokemonSupplier::nature),
@@ -53,6 +59,10 @@ public record PokemonSupplier (
         Codec.STRING.optionalFieldOf("properties_base").forGetter(PokemonSupplier::propertiesBase)
     ).apply(instance, PokemonSupplier::new));
 
+    public static Builder builder () {
+        return new Builder();
+    }
+
     /**
      * Constructs a new pokemon properties object using the data from this supplier. Does not include held items.
      *
@@ -63,6 +73,7 @@ public record PokemonSupplier (
         properties.setSpecies(this.species);
         this.features.apply(properties);
         properties.setLevel(this.level);
+        this.ability.ifPresent(properties::setAbility);
         this.moves.ifPresent(properties::setMoves);
         this.gender.ifPresent(properties::setGender);
         this.nature.ifPresent(nature -> properties.setNature(nature.getPath()));
@@ -97,6 +108,7 @@ public record PokemonSupplier (
             }
         }
 
+        this.ability.flatMap(ability -> Optional.ofNullable(Abilities.get(ability))).ifPresent(ability -> pokemon.setAbility$common(ability.create(false, Priority.NORMAL)));
         this.gender.ifPresent(pokemon::setGender);
         this.nature.flatMap(nature -> Optional.ofNullable(Natures.getNature(nature))).ifPresent(pokemon::setNature);
         this.ivs.ifPresent(iv -> iv.applyIVs(pokemon));
@@ -113,15 +125,16 @@ public record PokemonSupplier (
         private String species;
         private FeatureApplicator features = FeatureApplicator.DEFAULT;
         private int level = 1;
-        List<String> moves;
-        Gender gender;
-        Identifier nature;
-        PokemonStats ivs;
-        PokemonStats evs;
-        ItemStack heldItem;
-        float scale = 1f;
-        Boolean shiny;
-        String propertiesBase;
+        private String ability;
+        private List<String> moves;
+        private Gender gender;
+        private Identifier nature;
+        private PokemonStats ivs;
+        private PokemonStats evs;
+        private ItemStack heldItem;
+        private float scale = 1f;
+        private Boolean shiny;
+        private String propertiesBase;
 
         public Builder species (String species) {
             this.species = species;
@@ -155,6 +168,21 @@ public record PokemonSupplier (
 
         public Builder level (int level) {
             this.level = level;
+            return this;
+        }
+
+        public Builder ability (String ability) {
+            this.ability = ability;
+            return this;
+        }
+
+        public Builder ability (Ability ability) {
+            this.ability = ability.getTemplate().getName();
+            return this;
+        }
+
+        public Builder ability (AbilityTemplate ability) {
+            this.ability = ability.getName();
             return this;
         }
 
@@ -220,6 +248,7 @@ public record PokemonSupplier (
                 Objects.requireNonNull(this.species),
                 Objects.requireNonNull(this.features),
                 this.level,
+                Optional.ofNullable(this.ability),
                 Optional.ofNullable(this.moves),
                 Optional.ofNullable(this.gender),
                 Optional.ofNullable(this.nature),
