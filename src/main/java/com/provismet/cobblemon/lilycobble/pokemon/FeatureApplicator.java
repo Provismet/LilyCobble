@@ -1,8 +1,10 @@
 package com.provismet.cobblemon.lilycobble.pokemon;
 
+import com.cobblemon.mod.common.api.pokemon.PokemonProperties;
 import com.cobblemon.mod.common.api.pokemon.feature.FlagSpeciesFeature;
 import com.cobblemon.mod.common.api.pokemon.feature.IntSpeciesFeature;
 import com.cobblemon.mod.common.api.pokemon.feature.StringSpeciesFeature;
+import com.cobblemon.mod.common.api.properties.CustomPokemonProperty;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
@@ -11,7 +13,10 @@ import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.util.dynamic.Codecs;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,6 +30,8 @@ public record FeatureApplicator (Map<String, FeatureValue> featureMap) {
         FeatureApplicator::featureMap,
         FeatureApplicator::new
     );
+
+    public static final FeatureApplicator DEFAULT = new FeatureApplicator(Map.of());
 
     public static FeatureApplicator single (String name, String value) {
         return new FeatureApplicator(Map.of(name, FeatureValue.of(value)));
@@ -47,6 +54,17 @@ public record FeatureApplicator (Map<String, FeatureValue> featureMap) {
                     boolOrInt.ifRight(integer -> new IntSpeciesFeature(feature.getKey(), integer).apply(pokemon));
                 });
         }
+    }
+
+    public void apply (PokemonProperties properties) {
+        List<CustomPokemonProperty> toSet = new ArrayList<>();
+
+        for (Map.Entry<String, FeatureValue> feature : this.featureMap.entrySet()) {
+            CustomPokemonProperty property = feature.getValue().getProperty(feature.getKey());
+            if (property != null) toSet.add(property);
+        }
+
+        properties.setCustomProperties(toSet);
     }
 
     /**
@@ -88,6 +106,17 @@ public record FeatureApplicator (Map<String, FeatureValue> featureMap) {
             }
 
             // This point should never be reached, and if you do then you'll get an error.
+            return null;
+        }
+
+        @Nullable
+        public CustomPokemonProperty getProperty (String key) {
+            if (this.value.left().isPresent()) return new StringSpeciesFeature(key, this.value.left().get());
+            if (this.value.right().isPresent()) {
+                if (this.value.right().get().left().isPresent()) return new FlagSpeciesFeature(key, this.value.right().get().left().get());
+                if (this.value.right().get().right().isPresent()) return new IntSpeciesFeature(key, this.value.right().get().right().get());
+            }
+
             return null;
         }
     }
