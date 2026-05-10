@@ -13,7 +13,6 @@ import net.minecraft.network.RegistryByteBuf;
 import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.util.dynamic.Codecs;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,12 +66,7 @@ public record FeatureApplicator (Map<String, FeatureValue> featureMap) {
 
     public void apply (Pokemon pokemon) {
         for (Map.Entry<String, FeatureValue> feature : this.featureMap.entrySet()) {
-            feature.getValue().value()
-                .ifLeft(string -> new StringSpeciesFeature(feature.getKey(), string).apply(pokemon))
-                .ifRight(boolOrInt -> {
-                    boolOrInt.ifLeft(bool -> new FlagSpeciesFeature(feature.getKey(), bool).apply(pokemon));
-                    boolOrInt.ifRight(integer -> new IntSpeciesFeature(feature.getKey(), integer).apply(pokemon));
-                });
+            feature.getValue().getProperty(feature.getKey()).apply(pokemon);
         }
     }
 
@@ -119,25 +113,17 @@ public record FeatureApplicator (Map<String, FeatureValue> featureMap) {
         }
 
         public static FeatureValue of (Either<String, Either<Boolean, Integer>> value) {
-            if (value.left().isPresent()) return FeatureValue.of(value.left().get());
-            if (value.right().isPresent()) {
-                if (value.right().get().left().isPresent()) return FeatureValue.of(value.right().get().left().get());
-                if (value.right().get().right().isPresent()) return FeatureValue.of(value.right().get().right().get());
-            }
-
-            // This point should never be reached, and if you do then you'll get an error.
-            return null;
+            return value.map(FeatureValue::of, boolOrInt -> boolOrInt.map(FeatureValue::of, FeatureValue::of));
         }
 
-        @Nullable
         public CustomPokemonProperty getProperty (String key) {
-            if (this.value.left().isPresent()) return new StringSpeciesFeature(key, this.value.left().get());
-            if (this.value.right().isPresent()) {
-                if (this.value.right().get().left().isPresent()) return new FlagSpeciesFeature(key, this.value.right().get().left().get());
-                if (this.value.right().get().right().isPresent()) return new IntSpeciesFeature(key, this.value.right().get().right().get());
-            }
-
-            return null;
+            return this.value.map(
+                stringVal -> new StringSpeciesFeature(key, stringVal),
+                boolOrInt -> boolOrInt.map(
+                    boolVal -> new FlagSpeciesFeature(key, boolVal),
+                    intVal -> new IntSpeciesFeature(key, intVal)
+                )
+            );
         }
     }
 }
