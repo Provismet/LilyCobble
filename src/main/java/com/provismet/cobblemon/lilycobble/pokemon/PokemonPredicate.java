@@ -13,6 +13,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * A predicate implementation for testing textual and numerical aspects of a pokemon.
@@ -56,6 +57,10 @@ public record PokemonPredicate (
     public static final PokemonPredicate TRUE = new PokemonPredicate(StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StatsPredicate.TRUE, StatsPredicate.TRUE, HeldItemPredicate.TRUE, Optional.empty(), Optional.empty());
     public static final PokemonPredicate FALSE = new PokemonPredicate(StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StatsPredicate.FALSE, StatsPredicate.FALSE, HeldItemPredicate.FALSE, Optional.empty(), Optional.empty());
 
+    public static Builder builder () {
+        return new Builder();
+    }
+
     public boolean test (@Nullable Pokemon pokemon) {
         if (pokemon == null) return this.equals(TRUE);
 
@@ -76,7 +81,7 @@ public record PokemonPredicate (
             && (this.hasPreEvolution.isEmpty() || this.hasPreEvolution.get() == (pokemon.getPreEvolution() != null));
     }
 
-    public static class Builder {
+    public static class Builder implements Supplier<PokemonPredicate> {
         private StringPredicate speciesId = StringPredicate.TRUE;
         private StringPredicate formId = StringPredicate.TRUE;
         private StringPredicate speciesFormId = StringPredicate.TRUE;
@@ -218,7 +223,8 @@ public record PokemonPredicate (
             return this;
         }
 
-        public PokemonPredicate build () {
+        @Override
+        public PokemonPredicate get () {
             return new PokemonPredicate(
                 Objects.requireNonNull(this.speciesId),
                 Objects.requireNonNull(this.formId),
