@@ -7,12 +7,15 @@ import com.provismet.cobblemon.lilycobble.pokemon.matcher.IntPredicate;
 import com.provismet.cobblemon.lilycobble.pokemon.matcher.HeldItemPredicate;
 import com.provismet.cobblemon.lilycobble.pokemon.matcher.StatsPredicate;
 import com.provismet.cobblemon.lilycobble.pokemon.matcher.StringPredicate;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * A predicate implementation for testing textual and numerical aspects of a pokemon.
@@ -56,6 +59,10 @@ public record PokemonPredicate (
     public static final PokemonPredicate TRUE = new PokemonPredicate(StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StatsPredicate.TRUE, StatsPredicate.TRUE, HeldItemPredicate.TRUE, Optional.empty(), Optional.empty());
     public static final PokemonPredicate FALSE = new PokemonPredicate(StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StatsPredicate.FALSE, StatsPredicate.FALSE, HeldItemPredicate.FALSE, Optional.empty(), Optional.empty());
 
+    public static Builder builder () {
+        return new Builder();
+    }
+
     public boolean test (@Nullable Pokemon pokemon) {
         if (pokemon == null) return this.equals(TRUE);
 
@@ -76,7 +83,7 @@ public record PokemonPredicate (
             && (this.hasPreEvolution.isEmpty() || this.hasPreEvolution.get() == (pokemon.getPreEvolution() != null));
     }
 
-    public static class Builder {
+    public static class Builder implements Supplier<PokemonPredicate> {
         private StringPredicate speciesId = StringPredicate.TRUE;
         private StringPredicate formId = StringPredicate.TRUE;
         private StringPredicate speciesFormId = StringPredicate.TRUE;
@@ -103,6 +110,11 @@ public record PokemonPredicate (
             return this;
         }
 
+        public Builder species (String species) {
+            this.speciesId = StringPredicate.builder().whitelist(species).build();
+            return this;
+        }
+
         public Builder form (StringPredicate form) {
             this.formId = form;
             return this;
@@ -113,6 +125,11 @@ public record PokemonPredicate (
             return this;
         }
 
+        public Builder form (String form) {
+            this.formId = StringPredicate.builder().whitelist(form).build();
+            return this;
+        }
+
         public Builder speciesForm (StringPredicate speciesForm) {
             this.speciesFormId = speciesForm;
             return this;
@@ -120,6 +137,11 @@ public record PokemonPredicate (
 
         public Builder speciesForm (StringPredicate.Builder builder) {
             this.speciesFormId = builder.build();
+            return this;
+        }
+
+        public Builder speciesForm (String speciesForm) {
+            this.speciesFormId = StringPredicate.builder().whitelist(speciesForm).build();
             return this;
         }
 
@@ -150,6 +172,11 @@ public record PokemonPredicate (
 
         public Builder speciesLabels (StringPredicate.Builder builder) {
             this.speciesLabels = builder.build();
+            return this;
+        }
+
+        public Builder speciesLabels (String speciesLabel) {
+            this.speciesLabels = StringPredicate.builder().whitelist(speciesLabel).build();
             return this;
         }
 
@@ -208,6 +235,21 @@ public record PokemonPredicate (
             return this;
         }
 
+        public Builder heldItem (String showdownId) {
+            this.heldItem = HeldItemPredicate.builder().whitelist(showdownId).build();
+            return this;
+        }
+
+        public Builder heldItem (Item item) {
+            this.heldItem = HeldItemPredicate.builder().whitelist(item.getDefaultStack()).build();
+            return this;
+        }
+
+        public Builder heldItem (ItemStack item) {
+            this.heldItem = HeldItemPredicate.builder().whitelist(item).build();
+            return this;
+        }
+
         public Builder hasEvolution (boolean hasEvolution) {
             this.hasEvolution = hasEvolution;
             return this;
@@ -218,7 +260,8 @@ public record PokemonPredicate (
             return this;
         }
 
-        public PokemonPredicate build () {
+        @Override
+        public PokemonPredicate get () {
             return new PokemonPredicate(
                 Objects.requireNonNull(this.speciesId),
                 Objects.requireNonNull(this.formId),

@@ -1,8 +1,10 @@
 package com.provismet.cobblemon.lilycobble.pokemon;
 
+import com.cobblemon.mod.common.api.pokemon.PokemonProperties;
 import com.cobblemon.mod.common.api.pokemon.feature.FlagSpeciesFeature;
 import com.cobblemon.mod.common.api.pokemon.feature.IntSpeciesFeature;
 import com.cobblemon.mod.common.api.pokemon.feature.StringSpeciesFeature;
+import com.cobblemon.mod.common.api.properties.CustomPokemonProperty;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.mojang.datafixers.util.Either;
 import com.mojang.serialization.Codec;
@@ -12,7 +14,11 @@ import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.codec.PacketCodecs;
 import net.minecraft.util.dynamic.Codecs;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @param featureMap A mapping of feature name to value. All are applied to the Pokémon when triggered.
@@ -26,6 +32,8 @@ public record FeatureApplicator (Map<String, FeatureValue> featureMap) {
         FeatureApplicator::new
     );
 
+    public static final FeatureApplicator DEFAULT = new FeatureApplicator(Map.of());
+
     public static FeatureApplicator single (String name, String value) {
         return new FeatureApplicator(Map.of(name, FeatureValue.of(value)));
     }
@@ -38,15 +46,39 @@ public record FeatureApplicator (Map<String, FeatureValue> featureMap) {
         return new FeatureApplicator(Map.of(name, FeatureValue.of(value)));
     }
 
+    public FeatureApplicator with (String key, FeatureValue value) {
+        Map<String, FeatureValue> copy = new HashMap<>(this.featureMap);
+        copy.put(Objects.requireNonNull(key), Objects.requireNonNull(value));
+        return new FeatureApplicator(copy);
+    }
+
+    public FeatureApplicator with (String key, String value) {
+        return this.with(key, FeatureValue.of(Objects.requireNonNull(value)));
+    }
+
+    public FeatureApplicator with (String key, boolean value) {
+        return this.with(key, FeatureValue.of(value));
+    }
+
+    public FeatureApplicator with (String key, int value) {
+        return this.with(key, FeatureValue.of(value));
+    }
+
     public void apply (Pokemon pokemon) {
         for (Map.Entry<String, FeatureValue> feature : this.featureMap.entrySet()) {
-            feature.getValue().value()
-                .ifLeft(string -> new StringSpeciesFeature(feature.getKey(), string).apply(pokemon))
-                .ifRight(boolOrInt -> {
-                    boolOrInt.ifLeft(bool -> new FlagSpeciesFeature(feature.getKey(), bool).apply(pokemon));
-                    boolOrInt.ifRight(integer -> new IntSpeciesFeature(feature.getKey(), integer).apply(pokemon));
-                });
+            feature.getValue().getProperty(feature.getKey()).apply(pokemon);
         }
+    }
+
+    public void apply (PokemonProperties properties) {
+        List<CustomPokemonProperty> toSet = new ArrayList<>();
+
+        for (Map.Entry<String, FeatureValue> feature : this.featureMap.entrySet()) {
+            CustomPokemonProperty property = feature.getValue().getProperty(feature.getKey());
+            if (property != null) toSet.add(property);
+        }
+
+        properties.setCustomProperties(toSet);
     }
 
     /**
@@ -81,14 +113,17 @@ public record FeatureApplicator (Map<String, FeatureValue> featureMap) {
         }
 
         public static FeatureValue of (Either<String, Either<Boolean, Integer>> value) {
-            if (value.left().isPresent()) return FeatureValue.of(value.left().get());
-            if (value.right().isPresent()) {
-                if (value.right().get().left().isPresent()) return FeatureValue.of(value.right().get().left().get());
-                if (value.right().get().right().isPresent()) return FeatureValue.of(value.right().get().right().get());
-            }
+            return value.map(FeatureValue::of, boolOrInt -> boolOrInt.map(FeatureValue::of, FeatureValue::of));
+        }
 
-            // This point should never be reached, and if you do then you'll get an error.
-            return null;
+        public CustomPokemonProperty getProperty (String key) {
+            return this.value.map(
+                stringVal -> new StringSpeciesFeature(key, stringVal),
+                boolOrInt -> boolOrInt.map(
+                    boolVal -> new FlagSpeciesFeature(key, boolVal),
+                    intVal -> new IntSpeciesFeature(key, intVal)
+                )
+            );
         }
     }
 }
