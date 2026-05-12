@@ -83,7 +83,7 @@ public record PokemonSupplier (
         properties.setScaleModifier(this.scale);
         this.shiny.ifPresent(properties::setShiny);
 
-        return new PokemonProperties();
+        return properties;
     }
 
     @Override
