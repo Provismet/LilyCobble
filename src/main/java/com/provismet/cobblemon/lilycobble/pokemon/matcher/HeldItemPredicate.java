@@ -6,6 +6,7 @@ import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * A StringPredicate wrapper that tests the ShowdownId of an item.
@@ -25,7 +26,7 @@ public record HeldItemPredicate (StringPredicate stringPredicate) implements Pre
         return this.stringPredicate.test(showdownId);
     }
 
-    public static class Builder {
+    public static class Builder implements Supplier<HeldItemPredicate> {
         private final StringPredicate.Builder underlying = StringPredicate.builder();
 
         public Builder whitelist (String showdownId) {
@@ -52,6 +53,11 @@ public record HeldItemPredicate (StringPredicate stringPredicate) implements Pre
 
         public HeldItemPredicate build () {
             return new HeldItemPredicate(this.underlying.build());
+        }
+
+        @Override
+        public HeldItemPredicate get() {
+            return this.build();
         }
     }
 }

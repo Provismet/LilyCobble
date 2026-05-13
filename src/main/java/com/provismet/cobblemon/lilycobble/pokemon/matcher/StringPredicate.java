@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 /**
  * A predicate to run on a string or collection of strings, checking if they belong to a whitelist or blacklist.
@@ -53,7 +54,7 @@ public record StringPredicate (List<String> whitelist, List<String> blacklist, b
         return this.blacklist.isEmpty() || values.stream().noneMatch(this.blacklist::contains);
     }
 
-    public static class Builder {
+    public static class Builder implements Supplier<StringPredicate> {
         private final Set<String> whitelisted = new HashSet<>();
         private final Set<String> blacklisted = new HashSet<>();
         private boolean whitelistIsSubset = false;
@@ -75,6 +76,11 @@ public record StringPredicate (List<String> whitelist, List<String> blacklist, b
 
         public StringPredicate build () {
             return new StringPredicate(this.whitelisted.stream().toList(), this.blacklisted.stream().toList(), whitelistIsSubset);
+        }
+
+        @Override
+        public StringPredicate get() {
+            return this.build();
         }
     }
 }

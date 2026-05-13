@@ -7,6 +7,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 import java.util.Objects;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 @SuppressWarnings("unused")
 public record StatsPredicate (
@@ -44,7 +45,7 @@ public record StatsPredicate (
             && this.speed.test(stats.getOrDefault(Stats.SPEED));
     }
 
-    public static class Builder {
+    public static class Builder implements Supplier<StatsPredicate> {
         private IntPredicate health = IntPredicate.TRUE;
         private IntPredicate attack = IntPredicate.TRUE;
         private IntPredicate defence = IntPredicate.TRUE;
@@ -91,6 +92,11 @@ public record StatsPredicate (
                 Objects.requireNonNull(this.specialDefence),
                 Objects.requireNonNull(this.speed)
             );
+        }
+
+        @Override
+        public StatsPredicate get() {
+            return this.build();
         }
     }
 }
