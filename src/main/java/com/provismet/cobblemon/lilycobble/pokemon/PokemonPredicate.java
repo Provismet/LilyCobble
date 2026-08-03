@@ -27,6 +27,7 @@ public record PokemonPredicate (
     StringPredicate speciesFormShowdownIds,
     StringPredicate aspects,
     StringPredicate moves,
+    StringPredicate ability,
     IntPredicate level,
     IntPredicate friendship,
     IntPredicate fullness,
@@ -44,6 +45,7 @@ public record PokemonPredicate (
         StringPredicate.CODEC.optionalFieldOf("speciesform_showdown_ids", StringPredicate.TRUE).forGetter(PokemonPredicate::speciesFormShowdownIds),
         StringPredicate.CODEC.optionalFieldOf("aspects", StringPredicate.TRUE).forGetter(PokemonPredicate::aspects),
         StringPredicate.CODEC.optionalFieldOf("moves", StringPredicate.TRUE).forGetter(PokemonPredicate::moves),
+        StringPredicate.CODEC.optionalFieldOf("ability", StringPredicate.TRUE).forGetter(PokemonPredicate::ability),
         IntPredicate.CODEC.optionalFieldOf("level", IntPredicate.TRUE).forGetter(PokemonPredicate::level),
         IntPredicate.CODEC.optionalFieldOf("friendship", IntPredicate.TRUE).forGetter(PokemonPredicate::friendship),
         IntPredicate.CODEC.optionalFieldOf("fullness", IntPredicate.TRUE).forGetter(PokemonPredicate::fullness),
@@ -56,8 +58,8 @@ public record PokemonPredicate (
         Codec.BOOL.optionalFieldOf("has_pre-evolution").forGetter(PokemonPredicate::hasPreEvolution)
     ).apply(instance, PokemonPredicate::new));
 
-    public static final PokemonPredicate TRUE = new PokemonPredicate(StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StatsPredicate.TRUE, StatsPredicate.TRUE, HeldItemPredicate.TRUE, Optional.empty(), Optional.empty());
-    public static final PokemonPredicate FALSE = new PokemonPredicate(StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StatsPredicate.FALSE, StatsPredicate.FALSE, HeldItemPredicate.FALSE, Optional.empty(), Optional.empty());
+    public static final PokemonPredicate TRUE = new PokemonPredicate(StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StatsPredicate.TRUE, StatsPredicate.TRUE, HeldItemPredicate.TRUE, Optional.empty(), Optional.empty());
+    public static final PokemonPredicate FALSE = new PokemonPredicate(StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StatsPredicate.FALSE, StatsPredicate.FALSE, HeldItemPredicate.FALSE, Optional.empty(), Optional.empty());
 
     public static Builder builder () {
         return new Builder();
@@ -71,6 +73,7 @@ public record PokemonPredicate (
             && this.speciesFormShowdownIds.test(pokemon.showdownId())
             && this.aspects.test(pokemon.getAspects())
             && this.moves.test(pokemon.getMoveSet().getMoves().stream().filter(Objects::nonNull).map(move -> move.getName().toLowerCase(Locale.ROOT)).toList())
+            && this.ability.test(pokemon.getAbility().getTemplate().getName())
             && this.level.test(pokemon.getLevel())
             && this.friendship.test(pokemon.getFriendship())
             && this.fullness.test(pokemon.getCurrentFullness())
@@ -89,6 +92,7 @@ public record PokemonPredicate (
         private StringPredicate speciesFormId = StringPredicate.TRUE;
         private StringPredicate aspects = StringPredicate.TRUE;
         private StringPredicate moves = StringPredicate.TRUE;
+        private StringPredicate ability = StringPredicate.TRUE;
         private IntPredicate level = IntPredicate.TRUE;
         private IntPredicate friendship = IntPredicate.TRUE;
         private IntPredicate fullness = IntPredicate.TRUE;
@@ -162,6 +166,21 @@ public record PokemonPredicate (
 
         public Builder moves (StringPredicate.Builder builder) {
             this.moves = builder.build();
+            return this;
+        }
+
+        public Builder ability (StringPredicate ability) {
+            this.ability = ability;
+            return this;
+        }
+
+        public Builder ability (StringPredicate.Builder ability) {
+            this.ability = ability.build();
+            return this;
+        }
+
+        public Builder ability (String ability) {
+            this.ability = StringPredicate.builder().whitelist(ability).build();
             return this;
         }
 
@@ -268,6 +287,7 @@ public record PokemonPredicate (
                 Objects.requireNonNull(this.speciesFormId),
                 Objects.requireNonNull(this.aspects),
                 Objects.requireNonNull(this.moves),
+                Objects.requireNonNull(this.ability),
                 Objects.requireNonNull(this.level),
                 Objects.requireNonNull(this.friendship),
                 Objects.requireNonNull(this.fullness),
