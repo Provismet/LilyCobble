@@ -2,6 +2,8 @@ package com.provismet.cobblemon.lilycobble.pokemon.matcher;
 
 import com.cobblemon.mod.common.pokemon.helditem.CobblemonHeldItemManager;
 import com.mojang.serialization.Codec;
+import com.provismet.cobblemon.lilycobble.LilyCobbleMain;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,6 +39,12 @@ public record HeldItemPredicate (StringPredicate stringPredicate) implements Pre
         public Builder whitelist (ItemStack stack) {
             String showdownId = CobblemonHeldItemManager.INSTANCE.showdownId(stack);
             if (showdownId != null) this.underlying.whitelist(showdownId);
+            else if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+                LilyCobbleMain.LOGGER.warn(
+                    "HeldItemPredicate builder attempted to whitelist the Showdown ID for {} but found null. If this occurred during datagen, then CobblemonHeldItemManager probably hasn't initialised. Use string literals instead.",
+                    stack.getName().getString()
+                );
+            }
             return this;
         }
 
@@ -48,6 +56,12 @@ public record HeldItemPredicate (StringPredicate stringPredicate) implements Pre
         public Builder blacklist (ItemStack stack) {
             String showdownId = CobblemonHeldItemManager.INSTANCE.showdownId(stack);
             if (showdownId != null) this.underlying.blacklist(showdownId);
+            else if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+                LilyCobbleMain.LOGGER.warn(
+                    "HeldItemPredicate builder attempted to blacklist the Showdown ID for {} but found null. If this occurred during datagen, then CobblemonHeldItemManager probably hasn't initialised. Use string literals instead.",
+                    stack.getName().getString()
+                );
+            }
             return this;
         }
 
