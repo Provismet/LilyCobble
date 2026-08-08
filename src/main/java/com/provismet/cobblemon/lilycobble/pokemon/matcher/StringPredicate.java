@@ -7,6 +7,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -52,6 +53,20 @@ public record StringPredicate (List<String> whitelist, List<String> blacklist, b
     private boolean testRequired (Collection<String> values) {
         if (!this.whitelist.isEmpty() && !values.containsAll(this.whitelist)) return false;
         return this.blacklist.isEmpty() || values.stream().noneMatch(this.blacklist::contains);
+    }
+
+    @Override
+    public boolean equals (Object object) {
+        if (!(object instanceof StringPredicate other)) return false;
+
+        return this.whitelistIsSubset == other.whitelistIsSubset
+            && Objects.equals(this.whitelist, other.whitelist)
+            && Objects.equals(this.blacklist, other.blacklist);
+    }
+
+    @Override
+    public int hashCode () {
+        return Objects.hash(this.whitelist, this.blacklist, this.whitelistIsSubset);
     }
 
     public static class Builder implements Supplier<StringPredicate> {

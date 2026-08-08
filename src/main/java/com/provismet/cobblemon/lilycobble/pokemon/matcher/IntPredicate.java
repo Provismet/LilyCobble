@@ -59,6 +59,20 @@ public record IntPredicate (Comparison comparison, int compareTo, Optional<Integ
         return this.comparison.test(value, this.compareTo, this.compareTo2.orElse(0));
     }
 
+    @Override
+    public boolean equals (Object object) {
+        if (!(object instanceof IntPredicate other)) return false;
+
+        return this.compareTo == other.compareTo
+            && this.comparison == other.comparison
+            && Objects.equals(this.compareTo2, other.compareTo2);
+    }
+
+    @Override
+    public int hashCode () {
+        return Objects.hash(this.comparison.ordinal(), this.compareTo, this.compareTo2);
+    }
+
     public enum Comparison {
         EQUALS((num1, num2, num3) -> Objects.equals(num1, num2)),
         GREATER_THAN((num1, num2, num3) -> num1 > num2),

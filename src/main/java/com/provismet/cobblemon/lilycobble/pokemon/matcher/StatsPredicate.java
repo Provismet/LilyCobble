@@ -45,6 +45,23 @@ public record StatsPredicate (
             && this.speed.test(stats.getOrDefault(Stats.SPEED));
     }
 
+    @Override
+    public boolean equals (Object object) {
+        if (!(object instanceof StatsPredicate other)) return false;
+
+        return Objects.equals(this.health, other.health)
+            && Objects.equals(this.attack, other.attack)
+            && Objects.equals(this.defence, other.defence)
+            && Objects.equals(this.specialAttack, other.specialAttack)
+            && Objects.equals(this.specialDefence, other.specialDefence)
+            && Objects.equals(this.speed, other.speed);
+    }
+
+    @Override
+    public int hashCode () {
+        return Objects.hash(this.health, this.attack, this.defence, this.specialAttack, this.specialDefence, this.speed);
+    }
+
     public static class Builder implements Supplier<StatsPredicate> {
         private IntPredicate health = IntPredicate.TRUE;
         private IntPredicate attack = IntPredicate.TRUE;

@@ -7,6 +7,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 
@@ -26,6 +27,16 @@ public record HeldItemPredicate (StringPredicate stringPredicate) implements Pre
     public boolean test (@Nullable ItemStack stack) {
         String showdownId = stack == null ? null : CobblemonHeldItemManager.INSTANCE.showdownId(stack);
         return this.stringPredicate.test(showdownId);
+    }
+
+    @Override
+    public boolean equals (Object object) {
+        return object instanceof HeldItemPredicate other && Objects.equals(this.stringPredicate, other.stringPredicate);
+    }
+
+    @Override
+    public int hashCode () {
+        return Objects.hash(this.stringPredicate);
     }
 
     public static class Builder implements Supplier<HeldItemPredicate> {
