@@ -54,6 +54,7 @@ public record IntPredicate (Comparison comparison, int compareTo, Optional<Integ
         return new IntPredicate(Comparison.EXCLUSIVE_RANGE, min, max);
     }
 
+    @Override
     public boolean test (Integer value) {
         if (value == null) return this.equals(TRUE);
         return this.comparison.test(value, this.compareTo, this.compareTo2.orElse(0));

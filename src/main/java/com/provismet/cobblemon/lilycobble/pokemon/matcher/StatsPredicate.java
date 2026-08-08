@@ -34,6 +34,7 @@ public record StatsPredicate (
         return new Builder();
     }
 
+    @Override
     public boolean test (PokemonStats stats) {
         if (stats == null) return this.equals(TRUE);
 

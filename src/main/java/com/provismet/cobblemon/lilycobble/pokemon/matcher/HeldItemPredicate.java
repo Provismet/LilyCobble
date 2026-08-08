@@ -14,6 +14,7 @@ import java.util.function.Supplier;
 /**
  * A StringPredicate wrapper that tests the ShowdownId of an item.
  */
+@SuppressWarnings("unused")
 public record HeldItemPredicate (StringPredicate stringPredicate) implements Predicate<ItemStack> {
     public static final Codec<HeldItemPredicate> CODEC = StringPredicate.CODEC.xmap(HeldItemPredicate::new, HeldItemPredicate::stringPredicate);
     public static final HeldItemPredicate TRUE = new HeldItemPredicate(StringPredicate.TRUE);

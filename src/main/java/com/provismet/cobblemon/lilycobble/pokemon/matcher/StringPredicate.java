@@ -19,6 +19,7 @@ import java.util.function.Supplier;
  * @param blacklist The list of banned strings.
  * @param whitelistIsSubset Used only for testing collections, if true the whitelist is treated as a list of "required" strings instead and the collection will be allowed to have strings outside the whitelist.
  */
+@SuppressWarnings("unused")
 public record StringPredicate (List<String> whitelist, List<String> blacklist, boolean whitelistIsSubset) implements Predicate<String> {
     public static final Codec<StringPredicate> CODEC = RecordCodecBuilder.create(instance -> instance.group(
         Codec.STRING.listOf().optionalFieldOf("whitelist", List.of()).forGetter(StringPredicate::whitelist),
@@ -33,6 +34,7 @@ public record StringPredicate (List<String> whitelist, List<String> blacklist, b
         return new Builder();
     }
 
+    @Override
     public boolean test (@Nullable String value) {
         if (!this.whitelist.isEmpty() && (value == null || !this.whitelist.contains(value))) return false;
         return value == null || this.blacklist.isEmpty() || !this.blacklist.contains(value);
