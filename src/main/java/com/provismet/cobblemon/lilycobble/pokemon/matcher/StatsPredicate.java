@@ -1,10 +1,12 @@
 package com.provismet.cobblemon.lilycobble.pokemon.matcher;
 
+import com.cobblemon.mod.common.api.pokemon.stats.Stat;
 import com.cobblemon.mod.common.api.pokemon.stats.Stats;
 import com.cobblemon.mod.common.pokemon.PokemonStats;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -44,6 +46,17 @@ public record StatsPredicate (
             && this.specialAttack.test(stats.getOrDefault(Stats.SPECIAL_ATTACK))
             && this.specialDefence.test(stats.getOrDefault(Stats.SPECIAL_DEFENCE))
             && this.speed.test(stats.getOrDefault(Stats.SPEED));
+    }
+
+    public boolean test (Map<Stat, Integer> stats) {
+        if (stats == null) return this.equals(TRUE);
+
+        return this.health.test(stats.getOrDefault(Stats.HP, 0))
+            && this.attack.test(stats.getOrDefault(Stats.ATTACK, 0))
+            && this.defence.test(stats.getOrDefault(Stats.DEFENCE, 0))
+            && this.specialAttack.test(stats.getOrDefault(Stats.SPECIAL_ATTACK, 0))
+            && this.specialDefence.test(stats.getOrDefault(Stats.SPECIAL_DEFENCE, 0))
+            && this.speed.test(stats.getOrDefault(Stats.SPEED, 0));
     }
 
     @Override
