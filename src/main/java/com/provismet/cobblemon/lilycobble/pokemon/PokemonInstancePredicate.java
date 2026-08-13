@@ -48,6 +48,10 @@ public record PokemonInstancePredicate (
     public static final PokemonInstancePredicate TRUE = new PokemonInstancePredicate(StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, StringPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, IntPredicate.TRUE, StatsPredicate.TRUE, StatsPredicate.TRUE, HeldItemPredicate.TRUE);
     public static final PokemonInstancePredicate FALSE = new PokemonInstancePredicate(StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, StringPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, IntPredicate.FALSE, StatsPredicate.FALSE, StatsPredicate.FALSE, HeldItemPredicate.FALSE);
 
+    public static Builder builder () {
+        return new Builder();
+    }
+
     @Override
     public boolean test (Pokemon pokemon) {
         if (pokemon == null) return this.equals(TRUE);
