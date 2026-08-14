@@ -7,6 +7,7 @@ import com.provismet.cobblemon.lilycobble.pokemon.matcher.IntPredicate;
 import com.provismet.cobblemon.lilycobble.pokemon.matcher.HeldItemPredicate;
 import com.provismet.cobblemon.lilycobble.pokemon.matcher.StatsPredicate;
 import com.provismet.cobblemon.lilycobble.pokemon.matcher.StringPredicate;
+import com.provismet.cobblemon.lilycobble.util.codec.LegacyCodec;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
@@ -49,10 +50,10 @@ public record PokemonPredicate (
             new PokemonInstancePredicate(aspects, moves, ability, StringPredicate.TRUE, level, friendship, fullness, ev, iv, held))
     ));
 
-    public static final Codec<PokemonPredicate> CODEC = Codec.withAlternative(CODEC_NEW, CODEC_OLD);
-
     public static final PokemonPredicate TRUE = new PokemonPredicate(PokemonSpeciesPredicate.TRUE, PokemonInstancePredicate.TRUE);
     public static final PokemonPredicate FALSE = new PokemonPredicate(PokemonSpeciesPredicate.FALSE, PokemonInstancePredicate.FALSE);
+
+    public static final Codec<PokemonPredicate> CODEC = new LegacyCodec<>(CODEC_NEW, CODEC_OLD, predicate -> predicate.equals(TRUE));
 
     public static Builder builder () {
         return new Builder();
