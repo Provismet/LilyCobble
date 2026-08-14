@@ -65,6 +65,19 @@ public record PokemonPredicate (
             && this.instance.test(pokemon);
     }
 
+    @Override
+    public boolean equals (Object object) {
+        if (!(object instanceof PokemonPredicate other)) return false;
+
+        return Objects.equals(this.species, other.species)
+            && Objects.equals(this.instance, other.instance);
+    }
+
+    @Override
+    public int hashCode () {
+        return Objects.hash(this.species, this.instance);
+    }
+
     public static class Builder implements Supplier<PokemonPredicate> {
         PokemonSpeciesPredicate species = PokemonSpeciesPredicate.TRUE;
         PokemonInstancePredicate instance = PokemonInstancePredicate.TRUE;
