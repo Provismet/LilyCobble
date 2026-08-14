@@ -35,7 +35,7 @@ public record PokemonSpeciesPredicate(
         StringPredicate.CODEC.optionalFieldOf("speciesform_showdown_ids", StringPredicate.TRUE).forGetter(PokemonSpeciesPredicate::speciesFormShowdownIds),
         StringPredicate.CODEC.optionalFieldOf("species_labels", StringPredicate.TRUE).forGetter(PokemonSpeciesPredicate::speciesLabels),
         StringPredicate.CODEC.optionalFieldOf("form_labels", StringPredicate.TRUE).forGetter(PokemonSpeciesPredicate::formLabels),
-        StringPredicate.CODEC.optionalFieldOf("type", StringPredicate.TRUE).forGetter(PokemonSpeciesPredicate::formLabels),
+        StringPredicate.CODEC.optionalFieldOf("type", StringPredicate.TRUE).forGetter(PokemonSpeciesPredicate::type),
         StatsPredicate.CODEC.optionalFieldOf("base_stats", StatsPredicate.TRUE).forGetter(PokemonSpeciesPredicate::baseStats),
         Codec.BOOL.optionalFieldOf("has_evolution").forGetter(PokemonSpeciesPredicate::hasEvolution),
         Codec.BOOL.optionalFieldOf("has_pre-evolution").forGetter(PokemonSpeciesPredicate::hasPreEvolution)
