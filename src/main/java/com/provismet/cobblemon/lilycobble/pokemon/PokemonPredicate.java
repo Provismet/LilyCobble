@@ -43,10 +43,10 @@ public record PokemonPredicate (
         HeldItemPredicate.CODEC.optionalFieldOf("held_item", HeldItemPredicate.TRUE).forGetter(p -> p.instance.heldItem()),
         Codec.BOOL.optionalFieldOf("has_evolution").forGetter(p -> p.species.hasEvolution()),
         Codec.BOOL.optionalFieldOf("has_pre-evolution").forGetter(p -> p.species.hasPreEvolution())
-    ).apply(instance, (speciesId, formId, speciesFormId, aspects, moves, abilty, level, friendship, fullness, speciesLabel, formLabel, ev, iv, held, hasEvo, hasPreEvo) ->
+    ).apply(instance, (speciesId, formId, speciesFormId, aspects, moves, ability, level, friendship, fullness, speciesLabel, formLabel, ev, iv, held, hasEvo, hasPreEvo) ->
         new PokemonPredicate(
             new PokemonSpeciesPredicate(speciesId, formId, speciesFormId, speciesLabel, formLabel, StringPredicate.TRUE, StatsPredicate.TRUE, hasEvo, hasPreEvo),
-            new PokemonInstancePredicate(aspects, moves, abilty, StringPredicate.TRUE, level, friendship, fullness, ev, iv, held))
+            new PokemonInstancePredicate(aspects, moves, ability, StringPredicate.TRUE, level, friendship, fullness, ev, iv, held))
     ));
 
     public static final Codec<PokemonPredicate> CODEC = Codec.withAlternative(CODEC_NEW, CODEC_OLD);
